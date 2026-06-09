@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EstimatePayload } from "@/types/estimate";
+import type { ClarifyingAnswer, EstimatePayload } from "@/types/estimate";
 
 export interface WizardPhoto {
   uri: string;
@@ -25,6 +25,7 @@ interface WizardState {
   generationError: string | null;
   savedJobId: string | null;
   savedEstimateId: string | null;
+  clarifyingAnswers: ClarifyingAnswer[];
 
   setStep: (step: number) => void;
   setJobType: (jobType: string) => void;
@@ -37,6 +38,7 @@ interface WizardState {
   setGeneratedEstimate: (estimate: EstimatePayload) => void;
   setGenerationError: (error: string | null) => void;
   setSavedIds: (jobId: string, estimateId: string) => void;
+  setClarifyingAnswers: (answers: ClarifyingAnswer[]) => void;
   reset: () => void;
 }
 
@@ -58,6 +60,7 @@ export const useWizardStore = create<WizardState>((set) => ({
   generationError: null,
   savedJobId: null,
   savedEstimateId: null,
+  clarifyingAnswers: [],
 
   setStep: (step) => set({ currentStep: step }),
   setJobType: (jobType) => set({ jobType }),
@@ -77,6 +80,7 @@ export const useWizardStore = create<WizardState>((set) => ({
   setGenerationError: (generationError) => set({ generationError }),
   setSavedIds: (savedJobId, savedEstimateId) =>
     set({ savedJobId, savedEstimateId }),
+  setClarifyingAnswers: (clarifyingAnswers) => set({ clarifyingAnswers }),
   reset: () =>
     set({
       currentStep: 1,
@@ -89,5 +93,6 @@ export const useWizardStore = create<WizardState>((set) => ({
       generationError: null,
       savedJobId: null,
       savedEstimateId: null,
+      clarifyingAnswers: [],
     }),
 }));

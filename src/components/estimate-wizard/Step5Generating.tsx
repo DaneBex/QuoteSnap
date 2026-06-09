@@ -20,6 +20,7 @@ export function Step5Generating() {
     customer,
     notes,
     photos,
+    clarifyingAnswers,
     isGenerating,
     generationError,
     setIsGenerating,
@@ -38,9 +39,8 @@ export function Step5Generating() {
           jobType,
           customer,
           notes,
-          photoDescriptions: photos
-            .map((p) => p.description)
-            .filter(Boolean),
+          photoDescriptions: photos.map((p) => p.description).filter(Boolean),
+          clarifyingAnswers: clarifyingAnswers.length > 0 ? clarifyingAnswers : undefined,
         },
       });
 

@@ -1,3 +1,8 @@
+export interface ClarifyingAnswer {
+  question: string;
+  answer: string;
+}
+
 export interface LineItem {
   description: string;
   qty: number;

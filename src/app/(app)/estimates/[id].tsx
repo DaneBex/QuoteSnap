@@ -119,6 +119,8 @@ export default function EstimateDetailScreen() {
               subtotal: estimate.subtotal ?? 0,
               total: estimate.total ?? 0,
             }}
+            customer={estimate.jobs?.customers}
+            job={estimate.jobs}
             onSaved={() => {
               setSaved(true);
               setTimeout(() => setSaved(false), 3000);

@@ -83,9 +83,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { jobType, customer, notes, photoDescriptions } = await req.json();
+    const { jobType, customer, notes, photoDescriptions, clarifyingAnswers } = await req.json();
 
     photosIncluded = Array.isArray(photoDescriptions) && photoDescriptions.length > 0;
+    const hasAnswers = Array.isArray(clarifyingAnswers) && clarifyingAnswers.length > 0;
 
     const userPrompt = [
       `JOB TYPE: ${jobType}`,
@@ -95,6 +96,9 @@ Deno.serve(async (req) => {
       `\nCONTRACTOR NOTES:\n${notes || "(No notes provided)"}`,
       photosIncluded
         ? `\nPHOTO OBSERVATIONS:\n${(photoDescriptions as string[]).map((d, i) => `• Photo ${i + 1}: ${d}`).join("\n")}`
+        : null,
+      hasAnswers
+        ? `\nCLARIFYING ANSWERS FROM CONTRACTOR:\n${(clarifyingAnswers as { question: string; answer: string }[]).map((a) => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n")}`
         : null,
     ]
       .filter(Boolean)

@@ -3,17 +3,114 @@ import {
   Text,
   View,
   Alert,
+  TouchableOpacity,
+  Linking,
+  Platform,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CheckCircle, AlertTriangle } from "lucide-react-native";
+import { CheckCircle, AlertTriangle, Copy, MessageSquare, Mail, MessageCircle } from "lucide-react-native";
+import * as Clipboard from "expo-clipboard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useWizardStore } from "@/stores/wizardStore";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/utils";
 import { tokens } from "@/styles";
+
+function buildSmsBody(customerName: string, jobType: string, questions: string[]) {
+  const name = customerName ? `Hi ${customerName}` : "Hi";
+  const qs = questions.map((q) => `• ${q}`).join("\n");
+  return `${name}, I have a few questions before I can give you an accurate price for your ${jobType || "job"}:\n\n${qs}`;
+}
+
+function QuestionsCard({
+  questions,
+  customerName,
+  customerPhone,
+  customerEmail,
+  jobType,
+  onAnswerQuestions,
+}: {
+  questions: string[];
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  jobType: string;
+  onAnswerQuestions: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const text = questions.join("\n");
+    await Clipboard.setStringAsync(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleText = () => {
+    if (!customerPhone) return;
+    const body = buildSmsBody(customerName, jobType, questions);
+    Linking.openURL(`sms:${customerPhone}${Platform.OS === "ios" ? "&" : "?"}body=${encodeURIComponent(body)}`);
+  };
+
+  const handleEmail = () => {
+    if (!customerEmail) return;
+    const subject = encodeURIComponent(`Questions about your ${jobType || "estimate"}`);
+    const body = encodeURIComponent(buildSmsBody(customerName, jobType, questions));
+    Linking.openURL(`mailto:${customerEmail}?subject=${subject}&body=${body}`);
+  };
+
+  return (
+    <Card className="mb-4 border-amber-200 bg-amber-50">
+      <Text className="font-bold text-amber-800 mb-2">Questions Before Pricing</Text>
+      {questions.map((q, i) => (
+        <Text key={i} className="text-amber-700 mb-1 leading-5">• {q}</Text>
+      ))}
+
+      <View className="flex-row flex-wrap gap-2 mt-3 pt-3 border-t border-amber-200">
+        <TouchableOpacity
+          onPress={handleCopy}
+          className="flex-row items-center gap-1.5 bg-white border border-amber-200 rounded-lg px-3 py-1.5"
+        >
+          <Copy size={14} color={tokens.accent} />
+          <Text className="text-xs font-medium text-app-text-primary">
+            {copied ? "Copied!" : "Copy"}
+          </Text>
+        </TouchableOpacity>
+
+        {customerPhone ? (
+          <TouchableOpacity
+            onPress={handleText}
+            className="flex-row items-center gap-1.5 bg-white border border-amber-200 rounded-lg px-3 py-1.5"
+          >
+            <MessageSquare size={14} color={tokens.accent} />
+            <Text className="text-xs font-medium text-app-text-primary">Text Customer</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {customerEmail ? (
+          <TouchableOpacity
+            onPress={handleEmail}
+            className="flex-row items-center gap-1.5 bg-white border border-amber-200 rounded-lg px-3 py-1.5"
+          >
+            <Mail size={14} color={tokens.accent} />
+            <Text className="text-xs font-medium text-app-text-primary">Email Customer</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <TouchableOpacity
+          onPress={onAnswerQuestions}
+          className="flex-row items-center gap-1.5 bg-app-accent rounded-lg px-3 py-1.5"
+        >
+          <MessageCircle size={14} color={tokens.textInverse} />
+          <Text className="text-xs font-medium text-app-text-inverse">Answer Questions</Text>
+        </TouchableOpacity>
+      </View>
+    </Card>
+  );
+}
 
 export function Step6Review() {
   const router = useRouter();
@@ -24,6 +121,7 @@ export function Step6Review() {
     notes,
     photos,
     generatedEstimate,
+    setStep,
     reset,
   } = useWizardStore();
   const [saving, setSaving] = useState(false);
@@ -143,13 +241,15 @@ export function Step6Review() {
             : "Review the AI-generated estimate below. You can edit everything after saving."}
         </Text>
 
-        {isLowQuality && generatedEstimate.missingQuestions.length > 0 && (
-          <Card className="mb-4 border-amber-200 bg-amber-50">
-            <Text className="font-bold text-amber-800 mb-2">Questions Before Pricing</Text>
-            {generatedEstimate.missingQuestions.map((q, i) => (
-              <Text key={i} className="text-amber-700 mb-1">• {q}</Text>
-            ))}
-          </Card>
+        {generatedEstimate.missingQuestions.length > 0 && (
+          <QuestionsCard
+            questions={generatedEstimate.missingQuestions}
+            customerName={customer.name}
+            customerPhone={customer.phone}
+            customerEmail={customer.email}
+            jobType={jobType}
+            onAnswerQuestions={() => setStep(7)}
+          />
         )}
 
         <Card className="mb-4">
@@ -182,15 +282,6 @@ export function Step6Review() {
             <Text className="font-bold text-app-accent text-base">{formatCurrency(subtotal)}</Text>
           </View>
         </Card>
-
-        {!isLowQuality && generatedEstimate.missingQuestions.length > 0 && (
-          <Card className="mb-4 border-amber-200 bg-amber-50">
-            <Text className="font-bold text-amber-800 mb-2">Questions to Clarify</Text>
-            {generatedEstimate.missingQuestions.map((q, i) => (
-              <Text key={i} className="text-amber-700 mb-1">• {q}</Text>
-            ))}
-          </Card>
-        )}
       </ScrollView>
 
       <View
@@ -199,17 +290,11 @@ export function Step6Review() {
       >
         {isLowQuality ? (
           <View className="gap-3">
-            <Button onPress={handleSave} loading={saving} size="lg" className="w-full">
+            <Button onPress={() => setStep(7)} size="lg" className="w-full">
               Answer Questions
             </Button>
-            <Button
-              onPress={handleSave}
-              loading={saving}
-              size="lg"
-              variant="ghost"
-              className="w-full"
-            >
-              Create Draft Anyway
+            <Button onPress={handleSave} loading={saving} size="lg" variant="ghost" className="w-full">
+              Save Scope Draft
             </Button>
           </View>
         ) : (
