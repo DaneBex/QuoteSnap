@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { BottomCTA } from "@/components/layout/BottomCTA";
 import { supabase } from "@/lib/supabase";
+import { tokens } from "@/styles";
 
 interface BusinessForm {
   name: string;
@@ -105,26 +106,26 @@ export default function SettingsScreen() {
     keyboardType?: "default" | "phone-pad" | "email-address";
   }) => (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-gray-700 mb-1.5">{label}</Text>
+      <Text className="text-sm font-medium text-app-text-secondary mb-1.5">{label}</Text>
       <TextInput
         value={form[field]}
         onChangeText={(v) => setForm((f) => ({ ...f, [field]: v }))}
         placeholder={placeholder}
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={tokens.textTertiary}
         keyboardType={keyboardType ?? "default"}
         autoCapitalize={keyboardType === "email-address" ? "none" : "words"}
-        className="bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-base text-gray-900"
+        className="bg-app-surface border border-app-border rounded-xl px-4 py-3.5 text-base text-app-text-primary"
       />
     </View>
   );
 
   return (
-    <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-app-background" style={{ paddingTop: insets.top }}>
       <PageHeader title="Business Settings" showBack />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563eb" />
+          <ActivityIndicator color={tokens.accent} />
         </View>
       ) : (
         <ScrollView
@@ -132,7 +133,7 @@ export default function SettingsScreen() {
           contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+          <Text className="text-sm font-semibold text-app-text-tertiary uppercase tracking-wide mb-4">
             Business Profile
           </Text>
 
@@ -142,12 +143,12 @@ export default function SettingsScreen() {
           <Field label="Address" field="address" placeholder="123 Main St, City, TX" />
           <Field label="License Number" field="license_number" placeholder="TX-123456" />
 
-          <View className="mt-8 pt-6 border-t border-gray-200">
+          <View className="mt-8 pt-6 border-t border-app-border">
             <TouchableOpacity
               onPress={handleSignOut}
               className="items-center py-4"
             >
-              <Text className="text-red-500 font-semibold text-base">Sign Out</Text>
+              <Text className="text-app-danger font-semibold text-base">Sign Out</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

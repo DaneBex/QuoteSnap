@@ -1,5 +1,6 @@
 import { TextInput, Text, View, type TextInputProps } from "react-native";
 import { cn } from "@/lib/utils";
+import { tokens } from "@/styles";
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -11,20 +12,20 @@ export function Input({ label, error, className, ...props }: InputProps) {
   return (
     <View className="mb-4">
       {label && (
-        <Text className="text-sm font-medium text-gray-700 mb-1.5">{label}</Text>
+        <Text className="text-sm font-medium text-app-text-secondary mb-1.5">{label}</Text>
       )}
       <TextInput
         className={cn(
-          "bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-base text-gray-900",
-          "focus:border-blue-500",
-          error && "border-red-400",
+          "bg-app-surface border border-app-border rounded-xl px-4 py-3.5 text-base text-app-text-primary",
+          "focus:border-app-accent",
+          error && "border-app-danger",
           className
         )}
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={tokens.textTertiary}
         {...props}
       />
       {error && (
-        <Text className="text-red-500 text-sm mt-1">{error}</Text>
+        <Text className="text-app-danger text-sm mt-1">{error}</Text>
       )}
     </View>
   );

@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { statusColors } from "@/styles";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -22,15 +23,9 @@ export function formatDate(dateString: string): string {
 }
 
 export function getStatusColor(status: string): string {
-  switch (status) {
-    case "ready":
-      return "bg-green-100 text-green-800";
-    case "sent":
-      return "bg-blue-100 text-blue-800";
-    case "draft":
-    default:
-      return "bg-gray-100 text-gray-600";
-  }
+  const key = status as keyof typeof statusColors;
+  const colors = statusColors[key] ?? statusColors.draft;
+  return `${colors.bg} ${colors.text}`;
 }
 
 export function getStatusLabel(status: string): string {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { View, ActivityIndicator } from "react-native";
+import { tokens } from "@/styles";
 import type { Session } from "@supabase/supabase-js";
 
 export default function AppLayout() {
@@ -34,8 +35,8 @@ export default function AppLayout() {
 
   if (session === undefined) {
     return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View className="flex-1 bg-app-surface items-center justify-center">
+        <ActivityIndicator size="large" color={tokens.accent} />
       </View>
     );
   }

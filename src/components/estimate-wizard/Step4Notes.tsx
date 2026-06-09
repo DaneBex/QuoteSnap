@@ -5,6 +5,7 @@ import { BottomCTA } from "@/components/layout/BottomCTA";
 import { Button } from "@/components/ui/Button";
 import { useWizardStore } from "@/stores/wizardStore";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { tokens } from "@/styles";
 
 const PLACEHOLDER = `Example: "Customer wants back deck stairs replaced, railing tightened, two rotted boards swapped. Pressure wash and stain the full deck. Backyard access through side gate. Mid-grade stain. Need to confirm color."`;
 
@@ -39,8 +40,8 @@ export function Step4Notes() {
       contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
       keyboardShouldPersistTaps="handled"
     >
-      <Text className="text-2xl font-bold text-gray-900 mb-1">Job notes</Text>
-      <Text className="text-gray-500 mb-4">
+      <Text className="text-2xl font-bold text-app-text-primary mb-1">Job notes</Text>
+      <Text className="text-app-text-secondary mb-4">
         Describe the work in your own words. The messier the better — the AI will clean it up.
       </Text>
 
@@ -48,27 +49,27 @@ export function Step4Notes() {
         <TouchableOpacity
           onPress={toggleVoice}
           className={`flex-row items-center justify-center gap-2 rounded-2xl py-4 mb-4 ${
-            isListening ? "bg-red-500" : "bg-blue-600"
+            isListening ? "bg-app-danger" : "bg-app-accent"
           }`}
           activeOpacity={0.8}
         >
           {isListening ? (
             <>
-              <MicOff size={22} color="#fff" />
-              <Text className="text-white font-bold text-base">Stop Recording</Text>
+              <MicOff size={22} color={tokens.textInverse} />
+              <Text className="text-app-text-inverse font-bold text-base">Stop Recording</Text>
             </>
           ) : (
             <>
-              <Mic size={22} color="#fff" />
-              <Text className="text-white font-bold text-base">Record Voice Note</Text>
+              <Mic size={22} color={tokens.textInverse} />
+              <Text className="text-app-text-inverse font-bold text-base">Record Voice Note</Text>
             </>
           )}
         </TouchableOpacity>
       )}
 
       {isListening && (
-        <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3">
-          <Text className="text-red-600 font-medium text-sm">
+        <View className="bg-app-danger-light border border-app-danger rounded-xl px-4 py-3 mb-3">
+          <Text className="text-app-danger font-medium text-sm">
             🎙️ Listening… speak now
           </Text>
         </View>
@@ -81,12 +82,12 @@ export function Step4Notes() {
         numberOfLines={8}
         textAlignVertical="top"
         placeholder={PLACEHOLDER}
-        placeholderTextColor="#9ca3af"
-        className="bg-white border border-gray-200 rounded-2xl px-4 py-4 text-base text-gray-900 min-h-[200px]"
+        placeholderTextColor={tokens.textTertiary}
+        className="bg-app-surface border border-app-border rounded-2xl px-4 py-4 text-base text-app-text-primary min-h-[200px]"
         style={{ fontFamily: Platform.select({ ios: "System", android: "Roboto" }) }}
       />
 
-      <Text className="text-gray-400 text-sm mt-2 text-right">
+      <Text className="text-app-text-tertiary text-sm mt-2 text-right">
         {notes.length} characters
       </Text>
 

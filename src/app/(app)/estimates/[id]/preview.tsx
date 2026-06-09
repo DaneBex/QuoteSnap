@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EstimatePreview } from "@/components/preview/EstimatePreview";
 import { supabase } from "@/lib/supabase";
+import { tokens } from "@/styles";
 import type { SavedEstimate } from "@/types/estimate";
 
 export default function PreviewScreen() {
@@ -33,12 +34,12 @@ export default function PreviewScreen() {
   }, [id]);
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-app-surface" style={{ paddingTop: insets.top }}>
       <PageHeader title="Estimate Preview" showBack />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color={tokens.accent} />
         </View>
       ) : estimate ? (
         <EstimatePreview
@@ -48,7 +49,7 @@ export default function PreviewScreen() {
         />
       ) : (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500">Estimate not found.</Text>
+          <Text className="text-app-text-secondary">Estimate not found.</Text>
         </View>
       )}
     </View>

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LineItemsTable } from "./LineItemsTable";
 import { supabase } from "@/lib/supabase";
+import { tokens } from "@/styles";
 import type { EstimatePayload } from "@/types/estimate";
 
 interface EstimateEditorProps {
@@ -33,7 +34,7 @@ function EditableList({
 }) {
   return (
     <View className="mb-6">
-      <Text className="text-lg font-bold text-gray-900 mb-3">{label}</Text>
+      <Text className="text-lg font-bold text-app-text-primary mb-3">{label}</Text>
       {items.map((item, i) => (
         <TextInput
           key={i}
@@ -45,8 +46,8 @@ function EditableList({
           }}
           multiline
           placeholder={placeholder}
-          placeholderTextColor="#9ca3af"
-          className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 mb-2"
+          placeholderTextColor={tokens.textTertiary}
+          className="bg-app-surface border border-app-border rounded-xl px-4 py-3 text-base text-app-text-primary mb-2"
         />
       ))}
     </View>
@@ -118,14 +119,14 @@ export function EstimateEditor({
       >
         {/* Job Summary */}
         <View className="mb-6">
-          <Text className="text-lg font-bold text-gray-900 mb-2">Job Summary</Text>
+          <Text className="text-lg font-bold text-app-text-primary mb-2">Job Summary</Text>
           <TextInput
             value={watch("jobSummary")}
             onChangeText={(v) => setValue("jobSummary", v)}
             multiline
             placeholder="Brief job description"
-            placeholderTextColor="#9ca3af"
-            className="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-base text-gray-900"
+            placeholderTextColor={tokens.textTertiary}
+            className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
             style={{ minHeight: 80 }}
             textAlignVertical="top"
           />
@@ -133,14 +134,14 @@ export function EstimateEditor({
 
         {/* Scope of Work */}
         <View className="mb-6">
-          <Text className="text-lg font-bold text-gray-900 mb-2">Scope of Work</Text>
+          <Text className="text-lg font-bold text-app-text-primary mb-2">Scope of Work</Text>
           <TextInput
             value={watch("scopeOfWork")}
             onChangeText={(v) => setValue("scopeOfWork", v)}
             multiline
             placeholder="• Item 1&#10;• Item 2"
-            placeholderTextColor="#9ca3af"
-            className="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-base text-gray-900"
+            placeholderTextColor={tokens.textTertiary}
+            className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
             style={{ minHeight: 120 }}
             textAlignVertical="top"
           />
@@ -179,7 +180,7 @@ export function EstimateEditor({
 
         {/* Customer Message */}
         <View className="mb-6">
-          <Text className="text-lg font-bold text-gray-900 mb-2">
+          <Text className="text-lg font-bold text-app-text-primary mb-2">
             Customer Message
           </Text>
           <TextInput
@@ -187,8 +188,8 @@ export function EstimateEditor({
             onChangeText={(v) => setValue("customerMessage", v)}
             multiline
             placeholder="Professional message to include with the estimate"
-            placeholderTextColor="#9ca3af"
-            className="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-base text-gray-900"
+            placeholderTextColor={tokens.textTertiary}
+            className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
             style={{ minHeight: 120 }}
             textAlignVertical="top"
           />

@@ -1,5 +1,6 @@
 import { TouchableOpacity, Text, ActivityIndicator, View } from "react-native";
 import { cn } from "@/lib/utils";
+import { tokens } from "@/styles";
 
 interface ButtonProps {
   onPress?: () => void;
@@ -23,10 +24,10 @@ export function Button({
   const base = "rounded-xl flex-row items-center justify-center";
 
   const variants = {
-    primary: "bg-blue-600 active:bg-blue-700",
-    secondary: "bg-white border-2 border-blue-600 active:bg-blue-50",
-    ghost: "bg-transparent active:bg-gray-100",
-    danger: "bg-red-500 active:bg-red-600",
+    primary: "bg-app-accent active:bg-app-accent-hover",
+    secondary: "bg-app-surface border-2 border-app-accent active:bg-app-accent-light",
+    ghost: "bg-transparent active:bg-app-surface-alt",
+    danger: "bg-app-danger active:bg-app-danger",
   };
 
   const sizes = {
@@ -36,10 +37,10 @@ export function Button({
   };
 
   const textVariants = {
-    primary: "text-white font-semibold",
-    secondary: "text-blue-600 font-semibold",
-    ghost: "text-gray-700 font-medium",
-    danger: "text-white font-semibold",
+    primary: "text-app-text-inverse font-semibold",
+    secondary: "text-app-accent font-semibold",
+    ghost: "text-app-text-secondary font-medium",
+    danger: "text-app-text-inverse font-semibold",
   };
 
   const textSizes = {
@@ -60,7 +61,7 @@ export function Button({
       {loading && (
         <ActivityIndicator
           size="small"
-          color={variant === "primary" || variant === "danger" ? "#fff" : "#2563eb"}
+          color={variant === "primary" || variant === "danger" ? tokens.textInverse : tokens.accent}
           className="mr-2"
         />
       )}

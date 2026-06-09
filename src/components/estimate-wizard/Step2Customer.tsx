@@ -25,8 +25,8 @@ export function Step2Customer() {
       contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
       keyboardShouldPersistTaps="handled"
     >
-      <Text className="text-2xl font-bold text-gray-900 mb-1">Customer info</Text>
-      <Text className="text-gray-500 mb-6">
+      <Text className="text-2xl font-bold text-app-text-primary mb-1">Customer info</Text>
+      <Text className="text-app-text-secondary mb-6">
         Only the name is required. Fill in what you have.
       </Text>
 

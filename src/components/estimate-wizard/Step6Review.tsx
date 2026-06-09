@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { useWizardStore } from "@/stores/wizardStore";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/utils";
+import { tokens } from "@/styles";
 
 export function Step6Review() {
   const router = useRouter();
@@ -123,41 +124,41 @@ export function Step6Review() {
       contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
     >
       <View className="flex-row items-center gap-2 mb-4">
-        <CheckCircle size={24} color="#16a34a" />
-        <Text className="text-2xl font-bold text-gray-900">Estimate ready</Text>
+        <CheckCircle size={24} color={tokens.success} />
+        <Text className="text-2xl font-bold text-app-text-primary">Estimate ready</Text>
       </View>
-      <Text className="text-gray-500 mb-6">
+      <Text className="text-app-text-secondary mb-6">
         Review the AI-generated estimate below. You can edit everything after saving.
       </Text>
 
       <Card className="mb-4">
-        <Text className="font-bold text-gray-900 mb-2">Job Summary</Text>
-        <Text className="text-gray-700 leading-6">{generatedEstimate.jobSummary}</Text>
+        <Text className="font-bold text-app-text-primary mb-2">Job Summary</Text>
+        <Text className="text-app-text-secondary leading-6">{generatedEstimate.jobSummary}</Text>
       </Card>
 
       <Card className="mb-4">
-        <Text className="font-bold text-gray-900 mb-2">Scope of Work</Text>
-        <Text className="text-gray-700 leading-6">{generatedEstimate.scopeOfWork}</Text>
+        <Text className="font-bold text-app-text-primary mb-2">Scope of Work</Text>
+        <Text className="text-app-text-secondary leading-6">{generatedEstimate.scopeOfWork}</Text>
       </Card>
 
       <Card className="mb-4">
-        <Text className="font-bold text-gray-900 mb-3">Line Items</Text>
+        <Text className="font-bold text-app-text-primary mb-3">Line Items</Text>
         {generatedEstimate.lineItems.map((item, i) => (
-          <View key={i} className="flex-row justify-between py-2 border-b border-gray-100 last:border-0">
+          <View key={i} className="flex-row justify-between py-2 border-b border-app-border last:border-0">
             <View className="flex-1 pr-4">
-              <Text className="text-gray-800 font-medium">{item.description}</Text>
-              <Text className="text-gray-500 text-sm">
+              <Text className="text-app-text-primary font-medium">{item.description}</Text>
+              <Text className="text-app-text-secondary text-sm">
                 {item.qty} {item.unit} × {formatCurrency(item.unit_price)}
               </Text>
             </View>
-            <Text className="font-semibold text-gray-900">
+            <Text className="font-semibold text-app-text-primary">
               {formatCurrency(item.total)}
             </Text>
           </View>
         ))}
-        <View className="flex-row justify-between mt-3 pt-3 border-t-2 border-gray-200">
-          <Text className="font-bold text-gray-900 text-base">Subtotal</Text>
-          <Text className="font-bold text-blue-600 text-base">{formatCurrency(subtotal)}</Text>
+        <View className="flex-row justify-between mt-3 pt-3 border-t-2 border-app-border-strong">
+          <Text className="font-bold text-app-text-primary text-base">Subtotal</Text>
+          <Text className="font-bold text-app-accent text-base">{formatCurrency(subtotal)}</Text>
         </View>
       </Card>
 

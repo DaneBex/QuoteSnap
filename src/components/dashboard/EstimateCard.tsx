@@ -4,6 +4,7 @@ import { ChevronRight, FileText } from "lucide-react-native";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
+import { tokens } from "@/styles";
 import type { SavedEstimate } from "@/types/estimate";
 
 interface EstimateCardProps {
@@ -21,18 +22,18 @@ export function EstimateCard({ estimate }: EstimateCardProps) {
       activeOpacity={0.7}
     >
       <Card className="mb-3 flex-row items-center">
-        <View className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center mr-3">
-          <FileText size={20} color="#2563eb" />
+        <View className="w-10 h-10 bg-app-accent-light rounded-xl items-center justify-center mr-3">
+          <FileText size={20} color={tokens.accent} />
         </View>
         <View className="flex-1">
-          <Text className="font-semibold text-gray-900 text-base">
+          <Text className="font-semibold text-app-text-primary text-base">
             {customer?.name || "No customer"}
           </Text>
-          <Text className="text-gray-500 text-sm mt-0.5">
+          <Text className="text-app-text-secondary text-sm mt-0.5">
             {estimate.jobs?.job_type} · {formatDate(estimate.created_at)}
           </Text>
           {estimate.total != null && (
-            <Text className="text-blue-600 font-semibold text-sm mt-0.5">
+            <Text className="text-app-accent font-semibold text-sm mt-0.5">
               {formatCurrency(estimate.total)}
             </Text>
           )}
@@ -42,7 +43,7 @@ export function EstimateCard({ estimate }: EstimateCardProps) {
             label={getStatusLabel(estimate.status)}
             className={statusColor}
           />
-          <ChevronRight size={16} color="#9ca3af" />
+          <ChevronRight size={16} color={tokens.textTertiary} />
         </View>
       </Card>
     </TouchableOpacity>

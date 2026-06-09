@@ -14,6 +14,7 @@ import { BottomCTA } from "@/components/layout/BottomCTA";
 import { Button } from "@/components/ui/Button";
 import { useWizardStore } from "@/stores/wizardStore";
 import { supabase } from "@/lib/supabase";
+import { tokens } from "@/styles";
 
 const MAX_PHOTOS = 8;
 
@@ -94,8 +95,8 @@ export function Step3Photos() {
       className="flex-1"
       contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
     >
-      <Text className="text-2xl font-bold text-gray-900 mb-1">Job photos</Text>
-      <Text className="text-gray-500 mb-6">
+      <Text className="text-2xl font-bold text-app-text-primary mb-1">Job photos</Text>
+      <Text className="text-app-text-secondary mb-6">
         Add photos from the site. The AI will use these as context.
       </Text>
 
@@ -111,14 +112,14 @@ export function Step3Photos() {
               />
               {!photo.storageKey && (
                 <View className="absolute inset-0 bg-black/30 rounded-xl items-center justify-center">
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={tokens.textInverse} size="small" />
                 </View>
               )}
               <TouchableOpacity
                 onPress={() => removePhoto(i)}
-                className="absolute top-1 right-1 bg-red-500 rounded-full w-5 h-5 items-center justify-center"
+                className="absolute top-1 right-1 bg-app-danger rounded-full w-5 h-5 items-center justify-center"
               >
-                <X size={12} color="#fff" />
+                <X size={12} color={tokens.textInverse} />
               </TouchableOpacity>
             </View>
           ))}
@@ -126,9 +127,9 @@ export function Step3Photos() {
           {photos.length < MAX_PHOTOS && (
             <TouchableOpacity
               onPress={() => pickImage(false)}
-              className="w-24 h-24 rounded-xl bg-gray-100 items-center justify-center border-2 border-dashed border-gray-300"
+              className="w-24 h-24 rounded-xl bg-app-surface-alt items-center justify-center border-2 border-dashed border-app-border-strong"
             >
-              <Plus size={24} color="#6b7280" />
+              <Plus size={24} color={tokens.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -139,20 +140,20 @@ export function Step3Photos() {
         <View className="gap-3 mb-4">
           <TouchableOpacity
             onPress={() => pickImage(true)}
-            className="bg-blue-600 rounded-2xl py-5 items-center flex-row justify-center gap-3"
+            className="bg-app-accent rounded-2xl py-5 items-center flex-row justify-center gap-3"
             activeOpacity={0.8}
           >
-            <Camera size={24} color="#fff" />
-            <Text className="text-white font-bold text-lg">Take Photo</Text>
+            <Camera size={24} color={tokens.textInverse} />
+            <Text className="text-app-text-inverse font-bold text-lg">Take Photo</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => pickImage(false)}
-            className="bg-white border-2 border-blue-600 rounded-2xl py-4 items-center flex-row justify-center gap-3"
+            className="bg-app-surface border-2 border-app-accent rounded-2xl py-4 items-center flex-row justify-center gap-3"
             activeOpacity={0.8}
           >
-            <ImageIcon size={22} color="#2563eb" />
-            <Text className="text-blue-600 font-bold text-base">Choose from Library</Text>
+            <ImageIcon size={22} color={tokens.accent} />
+            <Text className="text-app-accent font-bold text-base">Choose from Library</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -161,19 +162,19 @@ export function Step3Photos() {
         <View className="flex-row gap-3 mt-2">
           <TouchableOpacity
             onPress={() => pickImage(true)}
-            className="flex-1 bg-gray-100 rounded-xl py-3 items-center flex-row justify-center gap-2"
+            className="flex-1 bg-app-surface-alt rounded-xl py-3 items-center flex-row justify-center gap-2"
             activeOpacity={0.8}
           >
-            <Camera size={18} color="#374151" />
-            <Text className="text-gray-700 font-semibold">Camera</Text>
+            <Camera size={18} color={tokens.textSecondary} />
+            <Text className="text-app-text-secondary font-semibold">Camera</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => pickImage(false)}
-            className="flex-1 bg-gray-100 rounded-xl py-3 items-center flex-row justify-center gap-2"
+            className="flex-1 bg-app-surface-alt rounded-xl py-3 items-center flex-row justify-center gap-2"
             activeOpacity={0.8}
           >
-            <ImageIcon size={18} color="#374151" />
-            <Text className="text-gray-700 font-semibold">Library</Text>
+            <ImageIcon size={18} color={tokens.textSecondary} />
+            <Text className="text-app-text-secondary font-semibold">Library</Text>
           </TouchableOpacity>
         </View>
       )}

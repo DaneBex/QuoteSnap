@@ -14,6 +14,7 @@ import { EstimateCard } from "@/components/dashboard/EstimateCard";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { supabase } from "@/lib/supabase";
 import { useWizardStore } from "@/stores/wizardStore";
+import { tokens } from "@/styles";
 import type { SavedEstimate } from "@/types/estimate";
 
 export default function DashboardScreen() {
@@ -51,29 +52,25 @@ export default function DashboardScreen() {
     router.push("/(app)/estimates/new");
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
-
   return (
-    <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-app-background" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="bg-white px-4 py-4 border-b border-gray-100 flex-row items-center justify-between">
+      <View className="bg-app-surface px-4 py-4 border-b border-app-border flex-row items-center justify-between">
         <View>
-          <Text className="text-2xl font-bold text-gray-900">QuoteSnap</Text>
-          <Text className="text-sm text-gray-500">Your estimates</Text>
+          <Text className="text-2xl font-bold text-app-text-primary">QuoteSnap</Text>
+          <Text className="text-sm text-app-text-secondary">Your estimates</Text>
         </View>
         <TouchableOpacity
           onPress={() => router.push("/(app)/settings")}
           className="w-10 h-10 items-center justify-center"
         >
-          <Settings size={24} color="#374151" />
+          <Settings size={24} color={tokens.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color={tokens.accent} />
         </View>
       ) : estimates.length === 0 ? (
         <EmptyState />
@@ -85,7 +82,7 @@ export default function DashboardScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          <Text className="text-sm font-semibold text-app-text-tertiary uppercase tracking-wide mb-3">
             Recent
           </Text>
           {estimates.map((estimate) => (
@@ -96,16 +93,16 @@ export default function DashboardScreen() {
 
       {/* New Estimate FAB */}
       <View
-        className="absolute bottom-0 left-0 right-0 px-4 pb-4 bg-transparent"
+        className="absolute bottom-0 left-0 right-0 px-4 bg-transparent"
         style={{ paddingBottom: Math.max(insets.bottom + 8, 16) }}
       >
         <TouchableOpacity
           onPress={handleNewEstimate}
-          className="bg-blue-600 rounded-2xl py-4 flex-row items-center justify-center gap-2 shadow-lg"
+          className="bg-app-accent rounded-2xl py-4 flex-row items-center justify-center gap-2 shadow-lg"
           activeOpacity={0.85}
         >
-          <Plus size={24} color="#fff" />
-          <Text className="text-white font-bold text-lg">New Estimate</Text>
+          <Plus size={24} color={tokens.textInverse} />
+          <Text className="text-app-text-inverse font-bold text-lg">New Estimate</Text>
         </TouchableOpacity>
       </View>
     </View>

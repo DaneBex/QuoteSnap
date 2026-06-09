@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react-native";
 import { useWizardStore } from "@/stores/wizardStore";
 import { supabase } from "@/lib/supabase";
+import { tokens } from "@/styles";
 import type { EstimatePayload } from "@/types/estimate";
 
 const MESSAGES = [
@@ -64,21 +65,21 @@ export function Step5Generating() {
   if (generationError) {
     return (
       <View className="flex-1 items-center justify-center px-8">
-        <View className="w-16 h-16 bg-red-50 rounded-full items-center justify-center mb-4">
-          <AlertCircle size={32} color="#ef4444" />
+        <View className="w-16 h-16 bg-app-danger-light rounded-full items-center justify-center mb-4">
+          <AlertCircle size={32} color={tokens.danger} />
         </View>
-        <Text className="text-xl font-bold text-gray-900 text-center mb-2">
+        <Text className="text-xl font-bold text-app-text-primary text-center mb-2">
           Generation failed
         </Text>
-        <Text className="text-gray-500 text-center mb-8 leading-6">
+        <Text className="text-app-text-secondary text-center mb-8 leading-6">
           {generationError}
         </Text>
         <TouchableOpacity
           onPress={generate}
-          className="bg-blue-600 rounded-2xl px-8 py-4 flex-row items-center gap-2"
+          className="bg-app-accent rounded-2xl px-8 py-4 flex-row items-center gap-2"
         >
-          <RefreshCw size={20} color="#fff" />
-          <Text className="text-white font-bold text-base">Try Again</Text>
+          <RefreshCw size={20} color={tokens.textInverse} />
+          <Text className="text-app-text-inverse font-bold text-base">Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -86,13 +87,13 @@ export function Step5Generating() {
 
   return (
     <View className="flex-1 items-center justify-center px-8">
-      <View className="w-20 h-20 bg-blue-50 rounded-full items-center justify-center mb-6">
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View className="w-20 h-20 bg-app-accent-light rounded-full items-center justify-center mb-6">
+        <ActivityIndicator size="large" color={tokens.accent} />
       </View>
-      <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
+      <Text className="text-2xl font-bold text-app-text-primary text-center mb-3">
         Generating estimate…
       </Text>
-      <Text className="text-gray-500 text-center leading-6">
+      <Text className="text-app-text-secondary text-center leading-6">
         The AI is turning your notes into a professional proposal. This usually takes 10–20 seconds.
       </Text>
     </View>

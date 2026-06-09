@@ -1,6 +1,7 @@
 import { ScrollView, View, Text, TouchableOpacity, Share, Platform } from "react-native";
 import { Printer, Share2 } from "lucide-react-native";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { tokens } from "@/styles";
 import type { SavedEstimate } from "@/types/estimate";
 
 interface EstimatePreviewProps {
@@ -10,13 +11,13 @@ interface EstimatePreviewProps {
 }
 
 function Divider() {
-  return <View className="h-px bg-gray-200 my-4" />;
+  return <View className="h-px bg-app-border my-4" />;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View className="mb-6">
-      <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+      <Text className="text-xs font-bold text-app-text-tertiary uppercase tracking-widest mb-2">
         {title}
       </Text>
       {children}
@@ -57,29 +58,29 @@ export function EstimatePreview({
 
   return (
     <ScrollView
-      className="flex-1 bg-white"
+      className="flex-1 bg-app-surface"
       contentContainerStyle={{ padding: 24, paddingBottom: 60 }}
     >
       {/* Header */}
       <View className="flex-row justify-between items-start mb-6">
         <View>
-          <Text className="text-2xl font-bold text-gray-900">
+          <Text className="text-2xl font-bold text-app-text-primary">
             {businessName ?? "Estimate"}
           </Text>
           {businessPhone && (
-            <Text className="text-gray-500 mt-0.5">{businessPhone}</Text>
+            <Text className="text-app-text-secondary mt-0.5">{businessPhone}</Text>
           )}
         </View>
         <TouchableOpacity
           onPress={handleShare}
-          className="bg-blue-600 rounded-xl px-4 py-2.5 flex-row items-center gap-2"
+          className="bg-app-accent rounded-xl px-4 py-2.5 flex-row items-center gap-2"
         >
           {Platform.OS === "web" ? (
-            <Printer size={18} color="#fff" />
+            <Printer size={18} color={tokens.textInverse} />
           ) : (
-            <Share2 size={18} color="#fff" />
+            <Share2 size={18} color={tokens.textInverse} />
           )}
-          <Text className="text-white font-semibold">
+          <Text className="text-app-text-inverse font-semibold">
             {Platform.OS === "web" ? "Print / PDF" : "Share"}
           </Text>
         </TouchableOpacity>
@@ -90,29 +91,29 @@ export function EstimatePreview({
       {/* Customer Info */}
       {customer && (
         <Section title="Prepared For">
-          <Text className="text-gray-900 font-semibold text-base">{customer.name}</Text>
+          <Text className="text-app-text-primary font-semibold text-base">{customer.name}</Text>
           {customer.address && (
-            <Text className="text-gray-600">{customer.address}</Text>
+            <Text className="text-app-text-secondary">{customer.address}</Text>
           )}
           {customer.phone && (
-            <Text className="text-gray-600">{customer.phone}</Text>
+            <Text className="text-app-text-secondary">{customer.phone}</Text>
           )}
           {customer.email && (
-            <Text className="text-gray-600">{customer.email}</Text>
+            <Text className="text-app-text-secondary">{customer.email}</Text>
           )}
         </Section>
       )}
 
       <View className="flex-row justify-between mb-6">
         <View>
-          <Text className="text-xs text-gray-400 uppercase tracking-wide">Job Type</Text>
-          <Text className="text-gray-900 font-medium mt-0.5">
+          <Text className="text-xs text-app-text-tertiary uppercase tracking-wide">Job Type</Text>
+          <Text className="text-app-text-primary font-medium mt-0.5">
             {estimate.jobs?.job_type ?? "—"}
           </Text>
         </View>
         <View className="items-end">
-          <Text className="text-xs text-gray-400 uppercase tracking-wide">Date</Text>
-          <Text className="text-gray-900 font-medium mt-0.5">
+          <Text className="text-xs text-app-text-tertiary uppercase tracking-wide">Date</Text>
+          <Text className="text-app-text-primary font-medium mt-0.5">
             {formatDate(estimate.created_at)}
           </Text>
         </View>
@@ -123,14 +124,14 @@ export function EstimatePreview({
       {/* Summary */}
       {estimate.job_summary && (
         <Section title="Job Summary">
-          <Text className="text-gray-700 leading-6">{estimate.job_summary}</Text>
+          <Text className="text-app-text-secondary leading-6">{estimate.job_summary}</Text>
         </Section>
       )}
 
       {/* Scope */}
       {estimate.scope_of_work && (
         <Section title="Scope of Work">
-          <Text className="text-gray-700 leading-6">{estimate.scope_of_work}</Text>
+          <Text className="text-app-text-secondary leading-6">{estimate.scope_of_work}</Text>
         </Section>
       )}
 
@@ -139,32 +140,32 @@ export function EstimatePreview({
       {/* Line Items */}
       <Section title="Pricing Breakdown">
         {/* Header row */}
-        <View className="flex-row pb-2 border-b border-gray-200">
-          <Text className="flex-1 text-xs font-bold text-gray-500 uppercase">Description</Text>
-          <Text className="w-12 text-xs font-bold text-gray-500 uppercase text-right">Qty</Text>
-          <Text className="w-20 text-xs font-bold text-gray-500 uppercase text-right">Price</Text>
-          <Text className="w-20 text-xs font-bold text-gray-500 uppercase text-right">Total</Text>
+        <View className="flex-row pb-2 border-b border-app-border">
+          <Text className="flex-1 text-xs font-bold text-app-text-secondary uppercase">Description</Text>
+          <Text className="w-12 text-xs font-bold text-app-text-secondary uppercase text-right">Qty</Text>
+          <Text className="w-20 text-xs font-bold text-app-text-secondary uppercase text-right">Price</Text>
+          <Text className="w-20 text-xs font-bold text-app-text-secondary uppercase text-right">Total</Text>
         </View>
 
         {lineItems.map((item, i) => (
-          <View key={i} className="flex-row py-3 border-b border-gray-100">
+          <View key={i} className="flex-row py-3 border-b border-app-border">
             <View className="flex-1 pr-3">
-              <Text className="text-gray-800 font-medium">{item.description}</Text>
-              <Text className="text-gray-500 text-xs">{item.unit}</Text>
+              <Text className="text-app-text-primary font-medium">{item.description}</Text>
+              <Text className="text-app-text-secondary text-xs">{item.unit}</Text>
             </View>
-            <Text className="w-12 text-gray-700 text-right">{item.qty}</Text>
-            <Text className="w-20 text-gray-700 text-right">
+            <Text className="w-12 text-app-text-secondary text-right">{item.qty}</Text>
+            <Text className="w-20 text-app-text-secondary text-right">
               {formatCurrency(item.unit_price)}
             </Text>
-            <Text className="w-20 text-gray-900 font-semibold text-right">
+            <Text className="w-20 text-app-text-primary font-semibold text-right">
               {formatCurrency(item.total)}
             </Text>
           </View>
         ))}
 
         <View className="flex-row justify-between pt-4 mt-1">
-          <Text className="font-bold text-gray-900 text-base">Total Estimate</Text>
-          <Text className="font-bold text-blue-600 text-lg">
+          <Text className="font-bold text-app-text-primary text-base">Total Estimate</Text>
+          <Text className="font-bold text-app-accent text-lg">
             {formatCurrency(subtotal)}
           </Text>
         </View>
@@ -176,7 +177,7 @@ export function EstimatePreview({
           <Divider />
           <Section title="Assumptions & Notes">
             {estimate.assumptions.map((a, i) => (
-              <Text key={i} className="text-gray-600 mb-1 leading-5">• {a}</Text>
+              <Text key={i} className="text-app-text-secondary mb-1 leading-5">• {a}</Text>
             ))}
           </Section>
         </>
@@ -187,7 +188,7 @@ export function EstimatePreview({
         <>
           <Divider />
           <Section title="Message">
-            <Text className="text-gray-700 leading-6 italic">
+            <Text className="text-app-text-secondary leading-6 italic">
               {estimate.customer_message}
             </Text>
           </Section>
@@ -197,18 +198,18 @@ export function EstimatePreview({
       {/* Signature */}
       <Divider />
       <View className="mt-4">
-        <Text className="text-xs text-gray-400 mb-6">
+        <Text className="text-xs text-app-text-tertiary mb-6">
           This estimate is subject to change upon on-site verification. Final price
           confirmed before work begins.
         </Text>
         <View className="flex-row gap-12">
           <View className="flex-1">
-            <View className="border-b border-gray-400 mb-1 pb-6" />
-            <Text className="text-xs text-gray-500">Contractor Signature</Text>
+            <View className="border-b border-app-border-strong mb-1 pb-6" />
+            <Text className="text-xs text-app-text-secondary">Contractor Signature</Text>
           </View>
           <View className="flex-1">
-            <View className="border-b border-gray-400 mb-1 pb-6" />
-            <Text className="text-xs text-gray-500">Customer Signature / Date</Text>
+            <View className="border-b border-app-border-strong mb-1 pb-6" />
+            <Text className="text-xs text-app-text-secondary">Customer Signature / Date</Text>
           </View>
         </View>
       </View>

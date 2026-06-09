@@ -13,6 +13,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
+import { tokens } from "@/styles";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -74,7 +75,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white"
+      className="flex-1 bg-app-surface"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
@@ -84,8 +85,8 @@ export default function LoginScreen() {
         <View className="flex-1 px-6 pt-20 pb-10">
           {/* Brand */}
           <View className="mb-12">
-            <Text className="text-4xl font-bold text-gray-900 mb-2">QuoteSnap</Text>
-            <Text className="text-lg text-gray-500 leading-6">
+            <Text className="text-4xl font-bold text-app-text-primary mb-2">QuoteSnap</Text>
+            <Text className="text-lg text-app-text-secondary leading-6">
               Professional estimates before you leave the driveway.
             </Text>
           </View>
@@ -93,18 +94,18 @@ export default function LoginScreen() {
           {magicLinkSent ? (
             <View className="items-center py-8">
               <Text className="text-6xl mb-4">📬</Text>
-              <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
+              <Text className="text-2xl font-bold text-app-text-primary text-center mb-2">
                 Check your email
               </Text>
-              <Text className="text-gray-500 text-center leading-6">
+              <Text className="text-app-text-secondary text-center leading-6">
                 We sent a login link to{" "}
-                <Text className="font-semibold text-gray-900">{email}</Text>
+                <Text className="font-semibold text-app-text-primary">{email}</Text>
               </Text>
               <TouchableOpacity
                 onPress={() => setMagicLinkSent(false)}
                 className="mt-8"
               >
-                <Text className="text-blue-600 font-medium">Use a different email</Text>
+                <Text className="text-app-accent font-medium">Use a different email</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -113,15 +114,15 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={handleGoogle}
                 disabled={loadingGoogle}
-                className="bg-blue-600 rounded-2xl py-4 items-center flex-row justify-center gap-3 mb-6"
+                className="bg-app-accent rounded-2xl py-4 items-center flex-row justify-center gap-3 mb-6"
                 activeOpacity={0.85}
               >
                 {loadingGoogle ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={tokens.textInverse} />
                 ) : (
                   <>
                     <Text className="text-2xl">G</Text>
-                    <Text className="text-white font-bold text-lg">
+                    <Text className="text-app-text-inverse font-bold text-lg">
                       Continue with Google
                     </Text>
                   </>
@@ -130,9 +131,9 @@ export default function LoginScreen() {
 
               {/* Divider */}
               <View className="flex-row items-center mb-6">
-                <View className="flex-1 h-px bg-gray-200" />
-                <Text className="mx-4 text-gray-400 font-medium">or</Text>
-                <View className="flex-1 h-px bg-gray-200" />
+                <View className="flex-1 h-px bg-app-border" />
+                <Text className="mx-4 text-app-text-tertiary font-medium">or</Text>
+                <View className="flex-1 h-px bg-app-border" />
               </View>
 
               {/* Magic link */}
@@ -140,28 +141,28 @@ export default function LoginScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="your@email.com"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={tokens.textTertiary}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
-                className="border-2 border-gray-200 rounded-2xl px-4 py-4 text-base text-gray-900 mb-3"
+                className="border-2 border-app-border rounded-2xl px-4 py-4 text-base text-app-text-primary mb-3"
               />
               <TouchableOpacity
                 onPress={handleMagicLink}
                 disabled={loadingMagic}
-                className="border-2 border-blue-600 rounded-2xl py-4 items-center"
+                className="border-2 border-app-accent rounded-2xl py-4 items-center"
                 activeOpacity={0.85}
               >
                 {loadingMagic ? (
-                  <ActivityIndicator color="#2563eb" />
+                  <ActivityIndicator color={tokens.accent} />
                 ) : (
-                  <Text className="text-blue-600 font-bold text-base">
+                  <Text className="text-app-accent font-bold text-base">
                     Send Magic Link
                   </Text>
                 )}
               </TouchableOpacity>
 
-              <Text className="text-xs text-gray-400 text-center mt-6 leading-5">
+              <Text className="text-xs text-app-text-tertiary text-center mt-6 leading-5">
                 By continuing, you agree to our Terms of Service and Privacy Policy.
               </Text>
             </>

@@ -21,7 +21,7 @@ export function WizardShell() {
   const currentStep = useWizardStore((s) => s.currentStep);
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-app-background">
       <StepIndicator
         total={STEP_LABELS.length}
         current={currentStep}

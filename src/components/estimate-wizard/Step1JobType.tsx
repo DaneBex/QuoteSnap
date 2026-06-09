@@ -48,8 +48,8 @@ export function Step1JobType() {
       contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
       keyboardShouldPersistTaps="handled"
     >
-      <Text className="text-2xl font-bold text-gray-900 mb-1">What's the job?</Text>
-      <Text className="text-gray-500 mb-6">Pick a type or describe it yourself.</Text>
+      <Text className="text-2xl font-bold text-app-text-primary mb-1">What's the job?</Text>
+      <Text className="text-app-text-secondary mb-6">Pick a type or describe it yourself.</Text>
 
       <View className="flex-row flex-wrap gap-3 mb-6">
         {JOB_TYPES.map((type) => {
@@ -64,8 +64,8 @@ export function Step1JobType() {
               className={cn(
                 "flex-row items-center px-4 py-3 rounded-2xl border-2",
                 isSelected
-                  ? "bg-blue-600 border-blue-600"
-                  : "bg-white border-gray-200"
+                  ? "bg-app-accent border-app-accent"
+                  : "bg-app-surface border-app-border"
               )}
               activeOpacity={0.7}
             >
@@ -73,7 +73,7 @@ export function Step1JobType() {
               <Text
                 className={cn(
                   "font-semibold text-base",
-                  isSelected ? "text-white" : "text-gray-700"
+                  isSelected ? "text-app-text-inverse" : "text-app-text-secondary"
                 )}
               >
                 {type.label}

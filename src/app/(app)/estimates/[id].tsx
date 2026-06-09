@@ -14,6 +14,7 @@ import { EstimateEditor } from "@/components/estimate-editor/EstimateEditor";
 import { supabase } from "@/lib/supabase";
 import { getStatusColor, getStatusLabel } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
+import { tokens } from "@/styles";
 import type { SavedEstimate } from "@/types/estimate";
 
 export default function EstimateDetailScreen() {
@@ -61,7 +62,7 @@ export default function EstimateDetailScreen() {
     : estimate?.jobs?.job_type ?? "Estimate";
 
   return (
-    <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-app-background" style={{ paddingTop: insets.top }}>
       <PageHeader
         title={title}
         showBack
@@ -74,10 +75,10 @@ export default function EstimateDetailScreen() {
               />
             )}
             <TouchableOpacity onPress={() => router.push(`/(app)/estimates/${id}/preview`)}>
-              <Eye size={22} color="#2563eb" />
+              <Eye size={22} color={tokens.accent} />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleDelete} className="ml-1">
-              <Trash2 size={20} color="#ef4444" />
+              <Trash2 size={20} color={tokens.danger} />
             </TouchableOpacity>
           </View>
         }
@@ -85,13 +86,13 @@ export default function EstimateDetailScreen() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color={tokens.accent} />
         </View>
       ) : estimate ? (
         <>
           {saved && (
-            <View className="bg-green-50 border-b border-green-100 px-4 py-2">
-              <Text className="text-green-700 font-medium text-sm text-center">
+            <View className="bg-app-success-light border-b border-app-success-light px-4 py-2">
+              <Text className="text-app-success font-medium text-sm text-center">
                 ✓ Saved — status updated to "Ready to Send"
               </Text>
             </View>
@@ -118,7 +119,7 @@ export default function EstimateDetailScreen() {
         </>
       ) : (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500">Estimate not found.</Text>
+          <Text className="text-app-text-secondary">Estimate not found.</Text>
         </View>
       )}
     </View>
