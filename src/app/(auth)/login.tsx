@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import * as WebBrowser from "expo-web-browser";
-import { makeRedirectUri } from "expo-linking";
+import { makeRedirectUri } from "expo-auth-session";
 
 WebBrowser.maybeCompleteAuthSession();
 
