@@ -1,0 +1,100 @@
+import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useEffect } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react-native";
+import { useWizardStore } from "@/stores/wizardStore";
+import { supabase } from "@/lib/supabase";
+import type { EstimatePayload } from "@/types/estimate";
+
+const MESSAGES = [
+  "Reading your notes…",
+  "Organizing the scope of work…",
+  "Building line items…",
+  "Writing the customer message…",
+  "Almost done…",
+];
+
+export function Step5Generating() {
+  const {
+    jobType,
+    customer,
+    notes,
+    photos,
+    isGenerating,
+    generationError,
+    setIsGenerating,
+    setGeneratedEstimate,
+    setGenerationError,
+    setStep,
+  } = useWizardStore();
+
+  const generate = async () => {
+    setIsGenerating(true);
+    setGenerationError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-estimate", {
+        body: {
+          jobType,
+          customer,
+          notes,
+          photoDescriptions: photos
+            .map((p) => p.description)
+            .filter(Boolean),
+        },
+      });
+
+      if (error) throw new Error(error.message);
+
+      const payload = data as EstimatePayload;
+      setGeneratedEstimate(payload);
+      setStep(6);
+    } catch (err) {
+      setGenerationError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  useEffect(() => {
+    generate();
+  }, []);
+
+  if (generationError) {
+    return (
+      <View className="flex-1 items-center justify-center px-8">
+        <View className="w-16 h-16 bg-red-50 rounded-full items-center justify-center mb-4">
+          <AlertCircle size={32} color="#ef4444" />
+        </View>
+        <Text className="text-xl font-bold text-gray-900 text-center mb-2">
+          Generation failed
+        </Text>
+        <Text className="text-gray-500 text-center mb-8 leading-6">
+          {generationError}
+        </Text>
+        <TouchableOpacity
+          onPress={generate}
+          className="bg-blue-600 rounded-2xl px-8 py-4 flex-row items-center gap-2"
+        >
+          <RefreshCw size={20} color="#fff" />
+          <Text className="text-white font-bold text-base">Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 items-center justify-center px-8">
+      <View className="w-20 h-20 bg-blue-50 rounded-full items-center justify-center mb-6">
+        <ActivityIndicator size="large" color="#2563eb" />
+      </View>
+      <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
+        Generating estimate…
+      </Text>
+      <Text className="text-gray-500 text-center leading-6">
+        The AI is turning your notes into a professional proposal. This usually takes 10–20 seconds.
+      </Text>
+    </View>
+  );
+}
