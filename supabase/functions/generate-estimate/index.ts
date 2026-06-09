@@ -99,7 +99,8 @@ Deno.serve(async (req) => {
     const text = message.content.find((b) => b.type === "text")?.text;
     if (!text) throw new Error("No text in Claude response");
 
-    const payload = JSON.parse(text);
+    const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+    const payload = JSON.parse(cleaned);
 
     return new Response(JSON.stringify(payload), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

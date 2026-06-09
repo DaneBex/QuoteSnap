@@ -44,7 +44,18 @@ export function Step5Generating() {
         },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Try to surface the real error body from the edge function
+        let msg = error.message;
+        try {
+          const context = (error as unknown as { context?: Response }).context;
+          if (context) {
+            const body = await context.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch {}
+        throw new Error(msg);
+      }
 
       const payload = data as EstimatePayload;
       setGeneratedEstimate(payload);
