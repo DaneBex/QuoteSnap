@@ -48,6 +48,20 @@ export function Step2Customer() {
 
       <Controller
         control={control}
+        name="address"
+        render={({ field }) => (
+          <Input
+            label="Job Site Address"
+            placeholder="123 Main St"
+            value={field.value}
+            onChangeText={field.onChange}
+            autoCapitalize="words"
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
         name="phone"
         render={({ field }) => (
           <Input
@@ -71,20 +85,6 @@ export function Step2Customer() {
             onChangeText={field.onChange}
             keyboardType="email-address"
             autoCapitalize="none"
-          />
-        )}
-      />
-
-      <Controller
-        control={control}
-        name="address"
-        render={({ field }) => (
-          <Input
-            label="Job Site Address"
-            placeholder="123 Main St, Austin TX"
-            value={field.value}
-            onChangeText={field.onChange}
-            autoCapitalize="words"
           />
         )}
       />

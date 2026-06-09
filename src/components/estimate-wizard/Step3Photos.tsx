@@ -96,8 +96,11 @@ export function Step3Photos() {
       contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
     >
       <Text className="text-2xl font-bold text-app-text-primary mb-1">Job photos</Text>
-      <Text className="text-app-text-secondary mb-6">
+      <Text className="text-app-text-secondary mb-2">
         Add photos from the site. The AI will use these as context.
+      </Text>
+      <Text className="text-xs text-app-text-tertiary mb-6">
+        Tip: Take wide shots, close-ups of damage, measurements, and access areas.
       </Text>
 
       {/* Photo grid */}
@@ -180,14 +183,26 @@ export function Step3Photos() {
       )}
 
       <BottomCTA>
-        <Button
-          onPress={() => setStep(4)}
-          size="lg"
-          className="w-full"
-          loading={uploading}
-        >
-          {photos.length === 0 ? "Skip Photos" : `Continue with ${photos.length} photo${photos.length !== 1 ? "s" : ""}`}
-        </Button>
+        {photos.length === 0 ? (
+          <Button
+            onPress={() => setStep(4)}
+            size="lg"
+            variant="ghost"
+            className="w-full"
+            loading={uploading}
+          >
+            Skip Photos
+          </Button>
+        ) : (
+          <Button
+            onPress={() => setStep(4)}
+            size="lg"
+            className="w-full"
+            loading={uploading}
+          >
+            {`Continue with ${photos.length} photo${photos.length !== 1 ? "s" : ""}`}
+          </Button>
+        )}
       </BottomCTA>
     </ScrollView>
   );

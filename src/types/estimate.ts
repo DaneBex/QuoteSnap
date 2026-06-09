@@ -13,6 +13,7 @@ export interface Upsell {
 }
 
 export interface EstimatePayload {
+  estimateQuality: "ready" | "needs_detail";
   jobSummary: string;
   scopeOfWork: string;
   lineItems: LineItem[];

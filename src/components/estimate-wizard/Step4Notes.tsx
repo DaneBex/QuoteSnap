@@ -9,6 +9,8 @@ import { tokens } from "@/styles";
 
 const PLACEHOLDER = `Example: "Customer wants back deck stairs replaced, railing tightened, two rotted boards swapped. Pressure wash and stain the full deck. Backyard access through side gate. Mid-grade stain. Need to confirm color."`;
 
+const PROMPT_CHIPS = ["Scope", "Measurements", "Materials", "Access", "Timeline", "Problem areas", "Customer requests"];
+
 export function Step4Notes() {
   const { notes, setNotes, setStep } = useWizardStore();
   const { isListening, transcript, isSupported, start, stop, clear } =
@@ -41,9 +43,29 @@ export function Step4Notes() {
       keyboardShouldPersistTaps="handled"
     >
       <Text className="text-2xl font-bold text-app-text-primary mb-1">Job notes</Text>
-      <Text className="text-app-text-secondary mb-4">
+      <Text className="text-app-text-secondary mb-1">
         Describe the work in your own words. The messier the better — the AI will clean it up.
       </Text>
+      <Text className="text-sm text-app-text-secondary mb-3">
+        Mention what needs done, rough measurements, material preferences, access issues, timeline, and anything uncertain.
+      </Text>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingBottom: 12 }}
+      >
+        {PROMPT_CHIPS.map((chip) => (
+          <TouchableOpacity
+            key={chip}
+            onPress={() => setNotes(notes ? `${notes}\n${chip}: ` : `${chip}: `)}
+            className="px-3 py-1.5 rounded-full border border-app-border bg-app-surface-alt"
+            activeOpacity={0.7}
+          >
+            <Text className="text-sm text-app-text-secondary">{chip}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {isSupported && (
         <TouchableOpacity

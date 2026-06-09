@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Platform,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -38,22 +39,29 @@ export default function EstimateDetailScreen() {
       });
   }, [id]);
 
-  const handleDelete = () => {
-    Alert.alert(
-      "Delete estimate?",
-      "This cannot be undone.",
-      [
+  const handleDelete = async () => {
+    if (Platform.OS === "web") {
+      // Alert.alert callbacks are unreliable on web — use window.confirm directly
+      if (!window.confirm("Delete estimate?\n\nThis cannot be undone.")) return;
+      const { error } = await supabase.from("estimates").delete().eq("id", id);
+      if (error) {
+        window.alert("Could not delete estimate. Please try again.");
+        return;
+      }
+      router.replace("/(app)/dashboard");
+    } else {
+      Alert.alert("Delete estimate?", "This cannot be undone.", [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            await supabase.from("estimates").delete().eq("id", id);
-            router.replace("/(app)/dashboard");
+            const { error } = await supabase.from("estimates").delete().eq("id", id);
+            if (!error) router.replace("/(app)/dashboard");
           },
         },
-      ]
-    );
+      ]);
+    }
   };
 
   const customer = estimate?.jobs?.customers;

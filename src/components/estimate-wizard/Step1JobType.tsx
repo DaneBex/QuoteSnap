@@ -15,7 +15,7 @@ const JOB_TYPES = [
   { label: "Landscaping", emoji: "🌿" },
   { label: "Pressure Washing", emoji: "💧" },
   { label: "Remodel", emoji: "🏠" },
-  { label: "Other", emoji: "📋" },
+  { label: "Describe My Own", emoji: "✏️" },
 ];
 
 export function Step1JobType() {
@@ -30,7 +30,7 @@ export function Step1JobType() {
   const selected = showCustom ? customType : jobType;
 
   const handlePreset = (label: string) => {
-    if (label === "Other") {
+    if (label === "Describe My Own") {
       setShowCustom(true);
       setJobType("");
     } else {
@@ -54,7 +54,7 @@ export function Step1JobType() {
       <View className="flex-row flex-wrap gap-3 mb-6">
         {JOB_TYPES.map((type) => {
           const isSelected =
-            type.label === "Other"
+            type.label === "Describe My Own"
               ? showCustom
               : jobType === type.label && !showCustom;
           return (
@@ -86,7 +86,7 @@ export function Step1JobType() {
       {showCustom && (
         <Input
           label="Describe the job"
-          placeholder="e.g. Roof inspection and minor repairs"
+          placeholder="e.g. Basement stair repair, garage drywall patch, fence gate replacement"
           value={customType}
           onChangeText={(t) => {
             setCustomType(t);

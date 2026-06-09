@@ -105,7 +105,7 @@ export function Step5Generating() {
         Generating estimate…
       </Text>
       <Text className="text-app-text-secondary text-center leading-6">
-        The AI is turning your notes into a professional proposal. This usually takes 10–20 seconds.
+        Building your estimate draft…
       </Text>
     </View>
   );
