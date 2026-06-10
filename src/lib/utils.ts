@@ -63,9 +63,9 @@ export function getEffectiveStatusKey(
   missingQuestionsCount = 0
 ): string {
   if (status === "sent") return "sent";
+  if (missingQuestionsCount > 0) return "needs_details";
   if (subtotal === 0 || status === "pricing_needed") return "pricing_needed";
   if (!pricesConfirmed) return "review_pricing";
-  if (missingQuestionsCount > 0) return "needs_details";
   return "ready";
 }
 
@@ -80,6 +80,6 @@ export function computeEstimateStatus(
     (li) => li.description && (Number(li.unit_price) || 0) === 0
   );
   if (subtotal === 0 || hasUnpricedItems) return "pricing_needed";
-  if (missingQuestionsCount > 0 || optionalQuestionsCount > 0) return "draft_ready";
+  if (missingQuestionsCount > 0) return "draft_ready";
   return "ready";
 }

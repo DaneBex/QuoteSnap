@@ -20,7 +20,7 @@ import { Card } from "@/components/ui/Card";
 import { LineItemsTable } from "./LineItemsTable";
 import { supabase } from "@/lib/supabase";
 import { tokens } from "@/styles";
-import { computeEstimateStatus, parseAmount } from "@/lib/utils";
+import { computeEstimateStatus, formatCurrency, parseAmount } from "@/lib/utils";
 import type { ClarifyingAnswer, EstimatePayload, LineItem } from "@/types/estimate";
 
 interface CustomerInfo {
@@ -53,6 +53,8 @@ interface EstimateEditorProps {
 function computePricingHash(items: LineItem[]): string {
   return JSON.stringify(items.map(li => ({ qty: li.qty, unit_price: li.unit_price })));
 }
+
+const CONFIRMED_TOTAL_RE = /\n*The estimated total for this scope is \$[\d,]+\.\d{2}\.\n*/g;
 
 function EditableList({
   label,
@@ -394,8 +396,20 @@ export function EstimateEditor({
     if (computePricingHash(lineItems ?? []) !== confirmedPricingHashRef.current) {
       setPricesConfirmed(false);
       onPricesConfirmedChange?.(false);
+
+      const currentMsg = getValues("customerMessage") ?? "";
+      const cleanedMsg = currentMsg.replace(CONFIRMED_TOTAL_RE, "").trimEnd();
+      if (cleanedMsg !== currentMsg) {
+        setValue("customerMessage", cleanedMsg);
+      }
+
       supabase.from("estimates")
-        .update({ prices_confirmed: false, prices_confirmed_at: null })
+        .update({
+          prices_confirmed: false,
+          prices_confirmed_at: null,
+          ...(cleanedMsg !== currentMsg ? { customer_message: cleanedMsg } : {}),
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", estimateId);
     }
   }, [lineItems, pricesConfirmed]);
@@ -421,6 +435,19 @@ export function EstimateEditor({
   };
 
   const confirmPrices = () => {
+    if ((missingQuestions ?? []).length > 0) {
+      const title = "Answer required details first";
+      const body = "A few details may affect the estimate price. Answer those before confirming prices.";
+      if (Platform.OS === "web") {
+        window.alert(`${title}\n\n${body}`);
+      } else {
+        Alert.alert(title, body, [
+          { text: "Cancel", style: "cancel" },
+          { text: "Answer Questions", style: "default" },
+        ]);
+      }
+      return;
+    }
     const msg = "This marks the current line item prices as reviewed. You can still edit them later, but changing prices will require reconfirmation.";
     if (Platform.OS === "web") {
       if (!window.confirm(`Confirm prices?\n\n${msg}`)) return;
@@ -438,9 +465,18 @@ export function EstimateEditor({
     confirmedPricingHashRef.current = computePricingHash(lineItems ?? []);
     setPricesConfirmed(true);
     onPricesConfirmedChange?.(true, confirmedAt);
+
+    const formattedTotal = formatCurrency(currentSubtotal);
+    const totalSentence = `The estimated total for this scope is ${formattedTotal}.`;
+    const currentMsg = getValues("customerMessage") ?? "";
+    const baseMsg = currentMsg.replace(CONFIRMED_TOTAL_RE, "").trimEnd();
+    const updatedMsg = baseMsg ? `${baseMsg}\n\n${totalSentence}` : totalSentence;
+    setValue("customerMessage", updatedMsg);
+
     await supabase.from("estimates").update({
       prices_confirmed: true,
       prices_confirmed_at: confirmedAt,
+      customer_message: updatedMsg,
       updated_at: confirmedAt,
     }).eq("id", estimateId);
   };
