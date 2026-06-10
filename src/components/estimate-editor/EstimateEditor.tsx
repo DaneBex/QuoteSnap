@@ -65,6 +65,7 @@ function EditableList({
             onChange(updated);
           }}
           multiline
+          scrollEnabled={false}
           placeholder={placeholder}
           placeholderTextColor={tokens.textTertiary}
           className="bg-app-surface border border-app-border rounded-xl px-4 py-3 text-base text-app-text-primary mb-2"
@@ -90,14 +91,14 @@ function MaterialsChecklist({
     <View className="mb-6">
       <Text className="text-lg font-bold text-app-text-primary mb-3">Materials Checklist</Text>
       {items.map((item, i) => (
-        <View key={i} className="flex-row items-center gap-3 mb-2">
+        <View key={i} className="bg-app-surface border border-app-border rounded-xl px-4 py-3 flex-row items-center gap-3 mb-2">
           <Pressable
             onPress={() => toggle(i)}
             style={{ width: 24, height: 24 }}
             className={`rounded-md border-2 items-center justify-center flex-shrink-0 ${
               checked[i]
                 ? "bg-app-accent border-app-accent"
-                : "bg-app-surface border-app-border"
+                : "bg-white border-app-border"
             }`}
           >
             {checked[i] ? <Check size={14} color="#ffffff" /> : null}
@@ -109,11 +110,18 @@ function MaterialsChecklist({
               updated[i] = v;
               onChange(updated);
             }}
-            multiline
             placeholder="Material item"
             placeholderTextColor={tokens.textTertiary}
-            className="flex-1 bg-app-surface border border-app-border rounded-xl px-4 py-3 text-base text-app-text-primary"
-            style={checked[i] ? { opacity: 0.45 } : undefined}
+            className="flex-1 text-base text-app-text-primary"
+            style={{
+              height: 28,
+              lineHeight: 22,
+              paddingVertical: 0,
+              paddingTop: 0,
+              paddingBottom: 0,
+              textAlignVertical: 'center',
+              ...(checked[i] ? { opacity: 0.45 } : {}),
+            }}
           />
         </View>
       ))}
@@ -230,7 +238,7 @@ function QuestionsCard({
     <Card className="mb-6 border-amber-200 bg-amber-50">
       <Text className="font-bold text-amber-800 mb-2">Clarify with Customer</Text>
       {questions.map((q, i) => (
-        <Text key={i} className="text-amber-700 mb-1 leading-5">• {q}</Text>
+        <Text key={i} className="text-stone-700 mb-1 leading-5">• {q}</Text>
       ))}
 
       <View className="flex-row flex-wrap gap-2 mt-3 pt-3 border-t border-amber-200">
@@ -269,7 +277,9 @@ function QuestionsCard({
           className="flex-row items-center gap-1.5 bg-app-accent rounded-lg px-3 py-1.5"
         >
           <MessageCircle size={14} color={tokens.textInverse} />
-          <Text className="text-xs font-medium text-app-text-inverse">Answer Questions</Text>
+          <Text className="text-xs font-medium text-app-text-inverse">
+            {showAnswers ? "Hide Questions" : "Answer Questions"}
+          </Text>
           {showAnswers
             ? <ChevronUp size={12} color={tokens.textInverse} />
             : <ChevronDown size={12} color={tokens.textInverse} />}
@@ -278,9 +288,12 @@ function QuestionsCard({
 
       {showAnswers && (
         <View className="mt-4 gap-3">
+          <Text className="text-xs text-app-text-secondary leading-4">
+            Answer what you can. Unanswered questions will be skipped.
+          </Text>
           {questions.map((question, i) => (
             <View key={i}>
-              <Text className="text-sm font-medium text-amber-800 mb-1 leading-5">{question}</Text>
+              <Text className="text-sm font-medium text-stone-700 mb-1 leading-5">{question}</Text>
               <TextInput
                 value={answers[i]}
                 onChangeText={(v) => {
@@ -324,6 +337,9 @@ export function EstimateEditor({
   onSaved,
 }: EstimateEditorProps) {
   const [saving, setSaving] = useState(false);
+  const [summaryHeight, setSummaryHeight] = useState(80);
+  const [scopeHeight, setScopeHeight] = useState(120);
+  const [messageHeight, setMessageHeight] = useState(120);
 
   const methods = useForm<EstimatePayload>({
     defaultValues: {
@@ -401,10 +417,14 @@ export function EstimateEditor({
             value={watch("jobSummary")}
             onChangeText={(v) => setValue("jobSummary", v)}
             multiline
+            scrollEnabled={false}
+            onContentSizeChange={(e) =>
+              setSummaryHeight(Math.max(80, e.nativeEvent.contentSize.height))
+            }
             placeholder="Brief job description"
             placeholderTextColor={tokens.textTertiary}
             className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
-            style={{ minHeight: 80 }}
+            style={{ minHeight: 80, height: summaryHeight }}
             textAlignVertical="top"
           />
         </View>
@@ -416,10 +436,14 @@ export function EstimateEditor({
             value={watch("scopeOfWork")}
             onChangeText={(v) => setValue("scopeOfWork", v)}
             multiline
+            scrollEnabled={false}
+            onContentSizeChange={(e) =>
+              setScopeHeight(Math.max(120, e.nativeEvent.contentSize.height))
+            }
             placeholder="• Item 1&#10;• Item 2"
             placeholderTextColor={tokens.textTertiary}
             className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
-            style={{ minHeight: 120 }}
+            style={{ minHeight: 120, height: scopeHeight }}
             textAlignVertical="top"
           />
         </View>
@@ -461,10 +485,14 @@ export function EstimateEditor({
             value={watch("customerMessage")}
             onChangeText={(v) => setValue("customerMessage", v)}
             multiline
+            scrollEnabled={false}
+            onContentSizeChange={(e) =>
+              setMessageHeight(Math.max(120, e.nativeEvent.contentSize.height))
+            }
             placeholder="Professional message to include with the estimate"
             placeholderTextColor={tokens.textTertiary}
             className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
-            style={{ minHeight: 120 }}
+            style={{ minHeight: 120, height: messageHeight }}
             textAlignVertical="top"
           />
         </View>

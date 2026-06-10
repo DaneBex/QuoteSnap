@@ -23,7 +23,7 @@ RULES:
 1. Never invent qty, unit_price, or total without measurements — use 0 and describe the gap, or omit and flag in missingQuestions.
 2. When scope is clear but price depends on unknown qty: set qty:1, unit:"allowance", unit_price:0, total:0 with a cost range in the description.
 3. Do NOT generate $0 line items with no useful description — omit them and add to missingQuestions instead.
-4. customerMessage: professional, warm, clearly non-binding. Max 2 sentences.
+4. customerMessage: professional, warm, clearly non-binding. Max 2 sentences. Use "thank you for the opportunity" framing — never assume the customer has chosen you (avoid "thank you for choosing us").
 
 ESTIMATE QUALITY — set estimateQuality based on pricability:
 - "ready": enough detail (measurements, scope, material grade) for a credible priced estimate

@@ -1,11 +1,12 @@
+import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { Plus, Trash2 } from "lucide-react-native";
+import { AlertCircle, Plus, Trash2 } from "lucide-react-native";
 import { formatCurrency } from "@/lib/utils";
 import { tokens } from "@/styles";
 import type { EstimatePayload } from "@/types/estimate";
 
-const UNIT_OPTIONS = ["each", "hrs", "day", "sq ft", "linear ft", "allowance", "fixed", "room", "section"];
+const UNIT_OPTIONS = ["each", "hrs", "day", "sq ft", "linear ft", "fixed", "allowance", "lot"];
 
 function UnitField({
   value,
@@ -14,41 +15,47 @@ function UnitField({
   value: string;
   onChangeText: (v: string) => void;
 }) {
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <View>
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setTimeout(() => setIsFocused(false), 150)}
         placeholder="unit"
         placeholderTextColor={tokens.textTertiary}
-        className="border border-app-border rounded-xl px-3 py-3 text-base text-app-text-primary mb-1.5"
+        className={`border border-app-border rounded-xl px-3 py-3 text-base text-app-text-primary ${isFocused ? "mb-1.5" : ""}`}
       />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View className="flex-row gap-1.5">
-          {UNIT_OPTIONS.map((opt) => {
-            const selected = value === opt;
-            return (
-              <TouchableOpacity
-                key={opt}
-                onPress={() => onChangeText(opt)}
-                className={`rounded-lg px-2 py-1 border ${
-                  selected
-                    ? "bg-app-accent-light border-app-accent"
-                    : "bg-app-surface-alt border-app-border"
-                }`}
-              >
-                <Text
-                  className={`text-xs ${
-                    selected ? "text-app-accent font-medium" : "text-app-text-secondary"
+      {isFocused && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View className="flex-row gap-1.5">
+            {UNIT_OPTIONS.map((opt) => {
+              const selected = value === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  onPress={() => onChangeText(opt)}
+                  className={`rounded-lg px-2 py-1 border ${
+                    selected
+                      ? "bg-app-accent-light border-app-accent"
+                      : "bg-app-surface-alt border-app-border"
                   }`}
                 >
-                  {opt}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
+                  <Text
+                    className={`text-xs ${
+                      selected ? "text-app-accent font-medium" : "text-app-text-secondary"
+                    }`}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -63,6 +70,9 @@ export function LineItemsTable() {
   const lineItems = useWatch({ control, name: "lineItems" });
 
   const subtotal = (lineItems ?? []).reduce((sum, li) => sum + (Number(li.total) || 0), 0);
+  const hasIncompletePricing =
+    (lineItems ?? []).length > 0 &&
+    (subtotal === 0 || (lineItems ?? []).some((li) => li.description && (Number(li.unit_price) || 0) === 0));
 
   const updateTotal = (index: number) => {
     const item = lineItems?.[index];
@@ -99,6 +109,7 @@ export function LineItemsTable() {
             placeholder="Description"
             placeholderTextColor={tokens.textTertiary}
             multiline
+            scrollEnabled={false}
             textAlignVertical="top"
             className="border border-app-border rounded-xl px-3 py-3 text-base text-app-text-primary mb-2"
             style={{ minHeight: 44 }}
@@ -170,6 +181,15 @@ export function LineItemsTable() {
           {formatCurrency(subtotal)}
         </Text>
       </View>
+
+      {hasIncompletePricing && (
+        <View className="flex-row items-center gap-1.5 mt-2 px-1">
+          <AlertCircle size={14} color={tokens.danger} />
+          <Text className="text-xs text-app-danger leading-4">
+            Pricing incomplete — add unit prices to finalize this estimate.
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
