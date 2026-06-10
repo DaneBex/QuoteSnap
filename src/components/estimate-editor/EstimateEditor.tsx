@@ -477,6 +477,7 @@ export function EstimateEditor({
       prices_confirmed: true,
       prices_confirmed_at: confirmedAt,
       customer_message: updatedMsg,
+      status: "ready",
       updated_at: confirmedAt,
     }).eq("id", estimateId);
   };

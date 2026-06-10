@@ -161,6 +161,7 @@ export default function EstimateDetailScreen() {
                 ...prev,
                 prices_confirmed: confirmed,
                 prices_confirmed_at: confirmedAt ?? prev.prices_confirmed_at ?? null,
+                status: confirmed ? "ready" : prev.status,
               } : null)
             }
             onMissingQuestionsChange={setMissingQuestionsCount}
