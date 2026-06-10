@@ -24,6 +24,7 @@ RULES:
 2. When scope is clear but price depends on unknown qty: set qty:1, unit:"allowance", unit_price:0, total:0 with a cost range in the description.
 3. Do NOT generate $0 line items with no useful description — omit them and add to missingQuestions instead.
 4. customerMessage: professional, warm, clearly non-binding. Max 2 sentences. Use "thank you for the opportunity" framing — never assume the customer has chosen you (avoid "thank you for choosing us").
+5. If CURRENT ESTIMATE LINE ITEMS are provided, treat them as the contractor's manual edits. Preserve every line item where unit_price > 0 exactly as-is — do not alter its description, qty, unit, unit_price, or total unless the clarifying answers explicitly change that item's scope. Only update or fill in line items with unit_price = 0 using new information from the answers. Add new line items only for scope revealed by the answers that isn't already covered.
 
 ESTIMATE QUALITY — set estimateQuality based on pricability:
 - "ready": enough detail (measurements, scope, material grade) for a credible priced estimate
@@ -47,6 +48,23 @@ OUTPUT: Return ONLY valid JSON matching this exact schema:
   ],
   "customerMessage": "string"
 }`;
+
+const UPDATE_MODE_ADDENDUM = `
+REVISION MODE — ACTIVE WHEN CLARIFYING ANSWERS ARE PROVIDED:
+
+You are REVISING an existing estimate, not starting over. These rules override general defaults:
+
+R1. INCORPORATE ANSWERS EVERYWHERE — apply new information to jobSummary, scopeOfWork, lineItem descriptions, materialsChecklist, assumptions, and customerMessage. Specific measurements, material grades, or scope details revealed by answers must appear in the relevant fields.
+
+R2. DO NOT RE-ASK ANSWERED QUESTIONS — do not include any question from ORIGINAL QUESTIONS BEING ANSWERED or PREVIOUSLY ANSWERED QUESTIONS in missingQuestions, even phrased differently. This is a hard rule.
+
+R3. SHRINK missingQuestions — return fewer questions than before answers were provided. Hard cap: 3 questions maximum. If answers resolved all blockers, return an empty array.
+
+R4. REVISE customerMessage with specifics — reference specific details from the answers (material type, measurements, finish, etc.) rather than generic language. Do not ask for information that was already answered.
+
+R5. UPGRADE estimateQuality — if answers resolved major unknowns (measurements, material grade, scope boundaries), set estimateQuality to "ready".
+
+R6. REVISE, DO NOT REPLACE — treat CURRENT JOB SUMMARY and CURRENT SCOPE OF WORK as the working draft. Update only the parts that the answers change; preserve accurate framing.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -83,10 +101,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { jobType, customer, notes, photoDescriptions, clarifyingAnswers } = await req.json();
+    const { jobType, customer, notes, photoDescriptions, clarifyingAnswers, previousAnswers, currentEstimate } = await req.json();
 
     photosIncluded = Array.isArray(photoDescriptions) && photoDescriptions.length > 0;
     const hasAnswers = Array.isArray(clarifyingAnswers) && clarifyingAnswers.length > 0;
+    const hasCurrentEstimate = currentEstimate && Array.isArray(currentEstimate.lineItems) && currentEstimate.lineItems.length > 0;
 
     const userPrompt = [
       `JOB TYPE: ${jobType}`,
@@ -97,21 +116,52 @@ Deno.serve(async (req) => {
       photosIncluded
         ? `\nPHOTO OBSERVATIONS:\n${(photoDescriptions as string[]).map((d, i) => `• Photo ${i + 1}: ${d}`).join("\n")}`
         : null,
+      currentEstimate?.jobSummary
+        ? `\nCURRENT JOB SUMMARY (revise from this, do not replace wholesale):\n${currentEstimate.jobSummary}`
+        : null,
+      currentEstimate?.scopeOfWork
+        ? `\nCURRENT SCOPE OF WORK (revise from this, do not replace wholesale):\n${currentEstimate.scopeOfWork}`
+        : null,
+      hasCurrentEstimate
+        ? `\nCURRENT ESTIMATE LINE ITEMS (contractor's manual edits — preserve items with unit_price > 0):\n${JSON.stringify(currentEstimate.lineItems)}`
+        : null,
       hasAnswers
-        ? `\nCLARIFYING ANSWERS FROM CONTRACTOR:\n${(clarifyingAnswers as { question: string; answer: string }[]).map((a) => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n")}`
+        ? (() => {
+            const originalQuestions: string[] = currentEstimate?.missingQuestions ?? [];
+            const answerMap = new Map(
+              (clarifyingAnswers as { question: string; answer: string }[]).map((a) => [a.question, a.answer])
+            );
+            if (originalQuestions.length > 0) {
+              const lines = originalQuestions
+                .map((q, i) => {
+                  const a = answerMap.get(q) ?? "(no answer — question still open)";
+                  return `Q${i + 1}: ${q}\nA${i + 1}: ${a}`;
+                })
+                .join("\n\n");
+              return `\nORIGINAL QUESTIONS BEING ANSWERED:\n${lines}`;
+            }
+            const lines = (clarifyingAnswers as { question: string; answer: string }[])
+              .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
+              .join("\n\n");
+            return `\nCLARIFYING ANSWERS FROM CONTRACTOR:\n${lines}`;
+          })()
+        : null,
+      Array.isArray(previousAnswers) && previousAnswers.length > 0
+        ? `\nPREVIOUSLY ANSWERED QUESTIONS (do not re-ask any of these):\n${(previousAnswers as { question: string; answer: string }[]).map((a) => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n")}`
         : null,
     ]
       .filter(Boolean)
       .join("\n");
 
-    promptChars = SYSTEM_PROMPT.length + userPrompt.length;
+    const systemPrompt = hasAnswers ? SYSTEM_PROMPT + "\n\n" + UPDATE_MODE_ADDENDUM : SYSTEM_PROMPT;
+    promptChars = systemPrompt.length + userPrompt.length;
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 
     const message = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 1200,
-      system: SYSTEM_PROMPT,
+      max_tokens: 1500,
+      system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
 

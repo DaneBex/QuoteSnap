@@ -35,7 +35,12 @@ interface JobInfo {
 
 interface EstimateEditorProps {
   estimateId: string;
-  defaultValues: EstimatePayload & { subtotal?: number; total?: number };
+  defaultValues: EstimatePayload & {
+    subtotal?: number;
+    total?: number;
+    materialsChecked?: boolean[];
+    clarifyingAnswers?: ClarifyingAnswer[];
+  };
   customer?: CustomerInfo | null;
   job?: JobInfo | null;
   onSaved?: () => void;
@@ -78,14 +83,16 @@ function EditableList({
 function MaterialsChecklist({
   items,
   onChange,
+  checked,
+  onCheckedChange,
 }: {
   items: string[];
   onChange: (items: string[]) => void;
+  checked: boolean[];
+  onCheckedChange: (checked: boolean[]) => void;
 }) {
-  const [checked, setChecked] = useState<boolean[]>(() => items.map(() => false));
-
   const toggle = (i: number) =>
-    setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
+    onCheckedChange(checked.map((v, idx) => (idx === i ? !v : v)));
 
   return (
     <View className="mb-6">
@@ -119,7 +126,7 @@ function MaterialsChecklist({
               paddingVertical: 0,
               paddingTop: 0,
               paddingBottom: 0,
-              textAlignVertical: 'center',
+              textAlignVertical: "center",
               ...(checked[i] ? { opacity: 0.45 } : {}),
             }}
           />
@@ -139,19 +146,21 @@ function QuestionsCard({
   questions,
   customer,
   job,
-  estimateId,
-  onRegenerated,
+  answers,
+  onAnswersChange,
+  regenerating,
+  onUpdateEstimate,
 }: {
   questions: string[];
   customer?: CustomerInfo | null;
   job?: JobInfo | null;
-  estimateId: string;
-  onRegenerated: (payload: EstimatePayload) => void;
+  answers: string[];
+  onAnswersChange: (answers: string[]) => void;
+  regenerating: boolean;
+  onUpdateEstimate: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
-  const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""));
-  const [regenerating, setRegenerating] = useState(false);
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(questions.join("\n"));
@@ -172,66 +181,6 @@ function QuestionsCard({
     const subject = encodeURIComponent(`Questions about your ${job?.job_type ?? "estimate"}`);
     const body = encodeURIComponent(buildSmsBody(customer.name ?? "", job?.job_type ?? "", questions));
     Linking.openURL(`mailto:${customer.email}?subject=${subject}&body=${body}`);
-  };
-
-  const handleRegenerate = async () => {
-    const pairs: ClarifyingAnswer[] = questions
-      .map((question, i) => ({ question, answer: answers[i].trim() }))
-      .filter((pair) => pair.answer.length > 0);
-
-    setRegenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-estimate", {
-        body: {
-          jobType: job?.job_type ?? "",
-          customer: { name: customer?.name ?? "", phone: customer?.phone ?? "", email: customer?.email ?? "" },
-          notes: job?.notes ?? "",
-          photoDescriptions: [],
-          clarifyingAnswers: pairs.length > 0 ? pairs : undefined,
-        },
-      });
-
-      if (error) {
-        let msg = error.message;
-        try {
-          const context = (error as unknown as { context?: Response }).context;
-          if (context) {
-            const body = await context.json();
-            if (body?.error) msg = body.error;
-          }
-        } catch {}
-        throw new Error(msg);
-      }
-
-      const payload = data as EstimatePayload;
-
-      const subtotal = payload.lineItems.reduce((sum, li) => sum + (li.total || 0), 0);
-      const { error: updateErr } = await supabase
-        .from("estimates")
-        .update({
-          job_summary: payload.jobSummary,
-          scope_of_work: payload.scopeOfWork,
-          line_items: payload.lineItems,
-          materials_checklist: payload.materialsChecklist,
-          missing_questions: payload.missingQuestions,
-          assumptions: payload.assumptions,
-          optional_upsells: payload.optionalUpsells,
-          customer_message: payload.customerMessage,
-          subtotal,
-          total: subtotal,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", estimateId);
-
-      if (updateErr) throw updateErr;
-
-      setShowAnswers(false);
-      onRegenerated(payload);
-    } catch (err) {
-      Alert.alert("Update failed", err instanceof Error ? err.message : "Please try again.");
-    } finally {
-      setRegenerating(false);
-    }
   };
 
   return (
@@ -295,11 +244,11 @@ function QuestionsCard({
             <View key={i}>
               <Text className="text-sm font-medium text-stone-700 mb-1 leading-5">{question}</Text>
               <TextInput
-                value={answers[i]}
+                value={answers[i] ?? ""}
                 onChangeText={(v) => {
                   const updated = [...answers];
                   updated[i] = v;
-                  setAnswers(updated);
+                  onAnswersChange(updated);
                 }}
                 multiline
                 placeholder="Your answer…"
@@ -312,7 +261,7 @@ function QuestionsCard({
           ))}
 
           <TouchableOpacity
-            onPress={handleRegenerate}
+            onPress={onUpdateEstimate}
             disabled={regenerating}
             className="bg-app-accent rounded-xl py-3 items-center flex-row justify-center gap-2"
           >
@@ -329,6 +278,13 @@ function QuestionsCard({
   );
 }
 
+function initAnswers(
+  questions: string[],
+  saved: ClarifyingAnswer[]
+): string[] {
+  return questions.map((q) => saved.find((a) => a.question === q)?.answer ?? "");
+}
+
 export function EstimateEditor({
   estimateId,
   defaultValues,
@@ -337,9 +293,26 @@ export function EstimateEditor({
   onSaved,
 }: EstimateEditorProps) {
   const [saving, setSaving] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [summaryHeight, setSummaryHeight] = useState(80);
   const [scopeHeight, setScopeHeight] = useState(120);
   const [messageHeight, setMessageHeight] = useState(120);
+
+  const [materialsChecked, setMaterialsChecked] = useState<boolean[]>(() => {
+    const saved = defaultValues.materialsChecked ?? [];
+    return (defaultValues.materialsChecklist ?? []).map((_, i) => saved[i] ?? false);
+  });
+
+  const [answers, setAnswers] = useState<string[]>(() =>
+    initAnswers(
+      defaultValues.missingQuestions ?? [],
+      defaultValues.clarifyingAnswers ?? []
+    )
+  );
+
+  const [resolvedAnswerHistory, setResolvedAnswerHistory] = useState<ClarifyingAnswer[]>(
+    () => defaultValues.clarifyingAnswers ?? []
+  );
 
   const methods = useForm<EstimatePayload>({
     defaultValues: {
@@ -354,12 +327,12 @@ export function EstimateEditor({
     },
   });
 
-  const { watch, setValue, handleSubmit, reset } = methods;
+  const { watch, setValue, handleSubmit, reset, getValues } = methods;
   const materialsChecklist = watch("materialsChecklist");
   const assumptions = watch("assumptions");
   const missingQuestions = watch("missingQuestions");
 
-  const handleRegenerated = (payload: EstimatePayload) => {
+  const applyRegeneratedPayload = (payload: EstimatePayload) => {
     reset({
       jobSummary: payload.jobSummary ?? "",
       scopeOfWork: payload.scopeOfWork ?? "",
@@ -370,12 +343,105 @@ export function EstimateEditor({
       optionalUpsells: payload.optionalUpsells ?? [],
       customerMessage: payload.customerMessage ?? "",
     });
+    const newQuestions = payload.missingQuestions ?? [];
+    // preserve answers for questions that survived the regeneration
+    setAnswers(initAnswers(newQuestions, missingQuestions.map((q, i) => ({ question: q, answer: answers[i] ?? "" }))));
+    setMaterialsChecked((payload.materialsChecklist ?? []).map(() => false));
+  };
+
+  const handleRegenerate = async () => {
+    const currentValues = getValues();
+    const pairs: ClarifyingAnswer[] = missingQuestions
+      .map((question, i) => ({ question, answer: answers[i]?.trim() ?? "" }))
+      .filter((pair) => pair.answer.length > 0);
+
+    setRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-estimate", {
+        body: {
+          jobType: job?.job_type ?? "",
+          customer: {
+            name: customer?.name ?? "",
+            phone: customer?.phone ?? "",
+            email: customer?.email ?? "",
+          },
+          notes: job?.notes ?? "",
+          photoDescriptions: [],
+          clarifyingAnswers: pairs.length > 0 ? pairs : undefined,
+          previousAnswers: resolvedAnswerHistory,
+          currentEstimate: {
+            lineItems: currentValues.lineItems,
+            jobSummary: currentValues.jobSummary,
+            scopeOfWork: currentValues.scopeOfWork,
+            missingQuestions: missingQuestions,
+            assumptions: currentValues.assumptions,
+            materialsChecklist: currentValues.materialsChecklist,
+          },
+        },
+      });
+
+      if (error) {
+        let msg = error.message;
+        try {
+          const context = (error as unknown as { context?: Response }).context;
+          if (context) {
+            const body = await context.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch {}
+        throw new Error(msg);
+      }
+
+      const payload = data as EstimatePayload;
+      const subtotal = payload.lineItems.reduce((sum, li) => sum + (li.total || 0), 0);
+
+      const newMissingQuestions = payload.missingQuestions ?? [];
+      const resolvedThisRound: ClarifyingAnswer[] = pairs.filter(
+        (pair) => !newMissingQuestions.some((q) => q === pair.question)
+      );
+      const mergedAnswers: ClarifyingAnswer[] = [
+        ...resolvedAnswerHistory.filter((a) => !resolvedThisRound.some((r) => r.question === a.question)),
+        ...resolvedThisRound,
+      ];
+
+      const { error: updateErr } = await supabase
+        .from("estimates")
+        .update({
+          job_summary: payload.jobSummary,
+          scope_of_work: payload.scopeOfWork,
+          line_items: payload.lineItems,
+          materials_checklist: payload.materialsChecklist,
+          materials_checked: [],
+          missing_questions: payload.missingQuestions,
+          clarifying_answers: mergedAnswers,
+          assumptions: payload.assumptions,
+          optional_upsells: payload.optionalUpsells,
+          customer_message: payload.customerMessage,
+          subtotal,
+          total: subtotal,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", estimateId);
+
+      if (updateErr) throw updateErr;
+
+      setResolvedAnswerHistory(mergedAnswers);
+      applyRegeneratedPayload(payload);
+    } catch (err) {
+      Alert.alert("Update failed", err instanceof Error ? err.message : "Please try again.");
+    } finally {
+      setRegenerating(false);
+    }
   };
 
   const onSubmit = async (data: EstimatePayload) => {
     setSaving(true);
     try {
       const subtotal = data.lineItems.reduce((sum, li) => sum + (li.total || 0), 0);
+      const clarifyingAnswerPairs: ClarifyingAnswer[] = missingQuestions
+        .map((q, i) => ({ question: q, answer: answers[i] ?? "" }))
+        .filter((pair) => pair.answer.length > 0);
+
       const { error } = await supabase
         .from("estimates")
         .update({
@@ -383,7 +449,9 @@ export function EstimateEditor({
           scope_of_work: data.scopeOfWork,
           line_items: data.lineItems,
           materials_checklist: data.materialsChecklist,
+          materials_checked: materialsChecked,
           missing_questions: data.missingQuestions,
+          clarifying_answers: clarifyingAnswerPairs,
           assumptions: data.assumptions,
           optional_upsells: data.optionalUpsells,
           customer_message: data.customerMessage,
@@ -455,6 +523,8 @@ export function EstimateEditor({
         <MaterialsChecklist
           items={materialsChecklist}
           onChange={(v) => setValue("materialsChecklist", v)}
+          checked={materialsChecked}
+          onCheckedChange={setMaterialsChecked}
         />
 
         {/* Clarifying Questions */}
@@ -463,8 +533,10 @@ export function EstimateEditor({
             questions={missingQuestions}
             customer={customer}
             job={job}
-            estimateId={estimateId}
-            onRegenerated={handleRegenerated}
+            answers={answers}
+            onAnswersChange={setAnswers}
+            regenerating={regenerating}
+            onUpdateEstimate={handleRegenerate}
           />
         )}
 

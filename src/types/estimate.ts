@@ -39,7 +39,9 @@ export interface SavedEstimate {
   scope_of_work: string | null;
   line_items: LineItem[];
   materials_checklist: string[];
+  materials_checked: boolean[];
   missing_questions: string[];
+  clarifying_answers: ClarifyingAnswer[];
   assumptions: string[];
   optional_upsells: Upsell[];
   customer_message: string | null;

@@ -135,6 +135,12 @@ create policy "owner" on public.estimates
   with check (auth.uid() = user_id);
 
 -- ─────────────────────────────────────────────────────────
+-- MIGRATIONS (run these if upgrading an existing database)
+-- ─────────────────────────────────────────────────────────
+alter table public.estimates add column if not exists materials_checked jsonb not null default '[]'::jsonb;
+alter table public.estimates add column if not exists clarifying_answers jsonb not null default '[]'::jsonb;
+
+-- ─────────────────────────────────────────────────────────
 -- STORAGE
 -- ─────────────────────────────────────────────────────────
 -- Run in Supabase dashboard Storage tab or via CLI:
