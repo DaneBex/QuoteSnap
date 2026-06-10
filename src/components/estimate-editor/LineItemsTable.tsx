@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform } from "react-native";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { AlertCircle, Plus, Trash2 } from "lucide-react-native";
 import { formatCurrency, parseAmount } from "@/lib/utils";
@@ -121,7 +121,7 @@ export function LineItemsTable() {
               }))
             }
             className="border border-app-border rounded-xl px-3 py-3 text-base text-app-text-primary mb-2"
-            style={{ minHeight: 44, height: descHeights[field.id] ?? 44 }}
+            style={{ minHeight: 44, height: descHeights[field.id] ?? 44, ...(Platform.OS === "web" && { overflow: "hidden" }) }}
           />
 
           <View className="flex-row gap-2 mb-2">

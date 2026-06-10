@@ -60,11 +60,12 @@ export function getEffectiveStatusKey(
   status: string,
   pricesConfirmed: boolean,
   subtotal: number,
-  missingQuestionsCount = 0
+  missingQuestionsCount = 0,
+  hasZeroPrices = false
 ): string {
   if (status === "sent") return "sent";
   if (missingQuestionsCount > 0) return "needs_details";
-  if (subtotal === 0 || (status === "pricing_needed" && !pricesConfirmed)) return "pricing_needed";
+  if (subtotal === 0 || hasZeroPrices) return "pricing_needed";
   if (!pricesConfirmed) return "review_pricing";
   return "ready";
 }

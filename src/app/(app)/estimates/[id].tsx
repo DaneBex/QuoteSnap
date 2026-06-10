@@ -81,11 +81,15 @@ export default function EstimateDetailScreen() {
         right={
           <View className="flex-row items-center gap-2">
             {estimate && (() => {
+              const hasZeroPrices = (estimate.line_items ?? []).some(
+                (li) => li.description && (Number(li.unit_price) || 0) === 0
+              );
               const effectiveKey = getEffectiveStatusKey(
                 estimate.status,
                 estimate.prices_confirmed,
                 estimate.subtotal ?? 0,
-                missingQuestionsCount
+                missingQuestionsCount,
+                hasZeroPrices
               );
               return (
                 <Badge
@@ -151,9 +155,18 @@ export default function EstimateDetailScreen() {
             }}
             customer={estimate.jobs?.customers}
             job={estimate.jobs}
-            onSaved={(status) => {
+            onSaved={async (status) => {
               setSaved(true);
               setSavedStatus(status ?? null);
+              const { data } = await supabase
+                .from("estimates")
+                .select("*, jobs(id, job_type, notes, customers(id, name, phone, email, address))")
+                .eq("id", id)
+                .single();
+              if (data) {
+                setEstimate(data as SavedEstimate);
+                setMissingQuestionsCount((data as SavedEstimate).missing_questions?.length ?? 0);
+              }
               setTimeout(() => setSaved(false), 4000);
             }}
             onPricesConfirmedChange={(confirmed, confirmedAt) =>

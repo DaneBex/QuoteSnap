@@ -84,6 +84,7 @@ function EditableList({
           placeholder={placeholder}
           placeholderTextColor={tokens.textTertiary}
           className="bg-app-surface border border-app-border rounded-xl px-4 py-3 text-base text-app-text-primary mb-2"
+          style={Platform.OS === "web" ? { overflow: "hidden" } : undefined}
         />
       ))}
     </View>
@@ -149,6 +150,7 @@ function MaterialsChecklist({
               paddingBottom: 0,
               textAlignVertical: "top",
               ...(checked[i] ? { opacity: 0.45 } : {}),
+              ...(Platform.OS === "web" ? { overflow: "hidden" } : {}),
             }}
           />
         </View>
@@ -279,7 +281,7 @@ function QuestionsCard({
                 placeholder="Your answer…"
                 placeholderTextColor={tokens.textTertiary}
                 className="bg-white border border-amber-200 rounded-xl px-3 py-2 text-sm text-app-text-primary"
-                style={{ minHeight: 56 }}
+                style={{ minHeight: 56, ...(Platform.OS === "web" && { overflow: "hidden" }) }}
                 textAlignVertical="top"
               />
             </View>
@@ -644,7 +646,7 @@ export function EstimateEditor({
             placeholder="Brief job description"
             placeholderTextColor={tokens.textTertiary}
             className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
-            style={{ minHeight: 80, height: summaryHeight }}
+            style={{ minHeight: 80, height: summaryHeight, ...(Platform.OS === "web" && { overflow: "hidden" }) }}
             textAlignVertical="top"
           />
         </View>
@@ -663,7 +665,7 @@ export function EstimateEditor({
             placeholder="• Item 1&#10;• Item 2"
             placeholderTextColor={tokens.textTertiary}
             className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
-            style={{ minHeight: 120, height: scopeHeight }}
+            style={{ minHeight: 120, height: scopeHeight, ...(Platform.OS === "web" && { overflow: "hidden" }) }}
             textAlignVertical="top"
           />
         </View>
@@ -750,7 +752,7 @@ export function EstimateEditor({
             placeholder="Professional message to include with the estimate"
             placeholderTextColor={tokens.textTertiary}
             className="bg-app-surface border border-app-border rounded-2xl px-4 py-3 text-base text-app-text-primary"
-            style={{ minHeight: 120, height: messageHeight }}
+            style={{ minHeight: 120, height: messageHeight, ...(Platform.OS === "web" && { overflow: "hidden" }) }}
             textAlignVertical="top"
           />
         </View>
