@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { AlertCircle, Plus, Trash2 } from "lucide-react-native";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, parseAmount } from "@/lib/utils";
 import { tokens } from "@/styles";
 import type { EstimatePayload } from "@/types/estimate";
 
@@ -66,10 +66,13 @@ export function LineItemsTable() {
     control,
     name: "lineItems",
   });
+  const [descHeights, setDescHeights] = useState<Record<string, number>>({});
 
   const lineItems = useWatch({ control, name: "lineItems" });
 
-  const subtotal = (lineItems ?? []).reduce((sum, li) => sum + (Number(li.total) || 0), 0);
+  const subtotal = (lineItems ?? []).reduce(
+    (sum, li) => sum + parseAmount(li.qty) * parseAmount(li.unit_price), 0
+  );
   const hasIncompletePricing =
     (lineItems ?? []).length > 0 &&
     (subtotal === 0 || (lineItems ?? []).some((li) => li.description && (Number(li.unit_price) || 0) === 0));
@@ -77,7 +80,7 @@ export function LineItemsTable() {
   const updateTotal = (index: number) => {
     const item = lineItems?.[index];
     if (item) {
-      const total = (Number(item.qty) || 0) * (Number(item.unit_price) || 0);
+      const total = parseAmount(item.qty) * parseAmount(item.unit_price);
       setValue(`lineItems.${index}.total`, total);
     }
   };
@@ -111,8 +114,14 @@ export function LineItemsTable() {
             multiline
             scrollEnabled={false}
             textAlignVertical="top"
+            onContentSizeChange={(e) =>
+              setDescHeights((prev) => ({
+                ...prev,
+                [field.id]: Math.max(44, e.nativeEvent.contentSize.height),
+              }))
+            }
             className="border border-app-border rounded-xl px-3 py-3 text-base text-app-text-primary mb-2"
-            style={{ minHeight: 44 }}
+            style={{ minHeight: 44, height: descHeights[field.id] ?? 44 }}
           />
 
           <View className="flex-row gap-2 mb-2">
@@ -121,7 +130,7 @@ export function LineItemsTable() {
               <TextInput
                 defaultValue={String(field.qty)}
                 onChangeText={(v) => {
-                  setValue(`lineItems.${index}.qty`, Number(v) || 0);
+                  setValue(`lineItems.${index}.qty`, parseAmount(v));
                   updateTotal(index);
                 }}
                 keyboardType="decimal-pad"
@@ -142,7 +151,7 @@ export function LineItemsTable() {
               <TextInput
                 defaultValue={String(field.unit_price)}
                 onChangeText={(v) => {
-                  setValue(`lineItems.${index}.unit_price`, Number(v) || 0);
+                  setValue(`lineItems.${index}.unit_price`, parseAmount(v));
                   updateTotal(index);
                 }}
                 keyboardType="decimal-pad"
@@ -157,8 +166,8 @@ export function LineItemsTable() {
             <Text className="text-app-text-secondary text-sm">Total</Text>
             <Text className="font-bold text-app-accent">
               {formatCurrency(
-                (Number(lineItems?.[index]?.qty) || 0) *
-                  (Number(lineItems?.[index]?.unit_price) || 0)
+                parseAmount(lineItems?.[index]?.qty) *
+                  parseAmount(lineItems?.[index]?.unit_price)
               )}
             </Text>
           </View>

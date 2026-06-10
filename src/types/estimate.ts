@@ -24,12 +24,13 @@ export interface EstimatePayload {
   lineItems: LineItem[];
   materialsChecklist: string[];
   missingQuestions: string[];
+  optionalQuestions: string[];
   assumptions: string[];
   optionalUpsells: Upsell[];
   customerMessage: string;
 }
 
-export type EstimateStatus = "draft" | "ready" | "sent";
+export type EstimateStatus = "draft" | "pricing_needed" | "draft_ready" | "ready" | "sent";
 
 export interface SavedEstimate {
   id: string;
@@ -41,6 +42,7 @@ export interface SavedEstimate {
   materials_checklist: string[];
   materials_checked: boolean[];
   missing_questions: string[];
+  optional_questions: string[];
   clarifying_answers: ClarifyingAnswer[];
   assumptions: string[];
   optional_upsells: Upsell[];
@@ -48,6 +50,8 @@ export interface SavedEstimate {
   subtotal: number | null;
   total: number | null;
   status: EstimateStatus;
+  prices_confirmed: boolean;
+  prices_confirmed_at: string | null;
   created_at: string;
   updated_at: string;
   jobs?: {

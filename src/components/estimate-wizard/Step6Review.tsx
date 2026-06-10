@@ -10,7 +10,7 @@ import {
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CheckCircle, AlertTriangle, Copy, MessageSquare, Mail, MessageCircle } from "lucide-react-native";
+import { Clock, AlertTriangle, Copy, MessageSquare, Mail, MessageCircle } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -27,6 +27,7 @@ function buildSmsBody(customerName: string, jobType: string, questions: string[]
 
 function QuestionsCard({
   questions,
+  hasPricing,
   customerName,
   customerPhone,
   customerEmail,
@@ -34,6 +35,7 @@ function QuestionsCard({
   onAnswerQuestions,
 }: {
   questions: string[];
+  hasPricing: boolean;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -64,7 +66,9 @@ function QuestionsCard({
 
   return (
     <Card className="mb-4 border-amber-200 bg-amber-50">
-      <Text className="font-bold text-amber-800 mb-2">Questions Before Pricing</Text>
+      <Text className="font-bold text-amber-800 mb-2">
+        {hasPricing ? "Final Details to Confirm" : "Questions Before Pricing"}
+      </Text>
       {questions.map((q, i) => (
         <Text key={i} className="text-amber-700 mb-1 leading-5">• {q}</Text>
       ))}
@@ -130,6 +134,7 @@ export function Step6Review() {
 
   const subtotal = generatedEstimate.lineItems.reduce((sum, li) => sum + li.total, 0);
   const isLowQuality = generatedEstimate.estimateQuality === "needs_detail";
+  const hasPricing = subtotal > 0;
 
   const handleSave = async () => {
     setSaving(true);
@@ -230,20 +235,21 @@ export function Step6Review() {
           </View>
         ) : (
           <View className="flex-row items-center gap-2 mb-2">
-            <CheckCircle size={24} color={tokens.success} />
-            <Text className="text-2xl font-bold text-app-text-primary">Estimate ready</Text>
+            <Clock size={24} color={tokens.textSecondary} />
+            <Text className="text-2xl font-bold text-app-text-primary">Draft estimate ready</Text>
           </View>
         )}
 
         <Text className="text-app-text-secondary mb-6">
           {isLowQuality
             ? "I drafted the scope, but several details are missing before this is ready for pricing."
-            : "Review the AI-generated estimate below. You can edit everything after saving."}
+            : "Review the AI-generated draft below. Confirm pricing and final details before sending."}
         </Text>
 
         {generatedEstimate.missingQuestions.length > 0 && (
           <QuestionsCard
             questions={generatedEstimate.missingQuestions}
+            hasPricing={hasPricing}
             customerName={customer.name}
             customerPhone={customer.phone}
             customerEmail={customer.email}
@@ -277,7 +283,15 @@ export function Step6Review() {
               </Text>
             </View>
           ))}
-          <View className="flex-row justify-between mt-3 pt-3 border-t-2 border-app-border-strong">
+          {hasPricing && (
+            <View className="flex-row items-center gap-2 mt-3 pt-2">
+              <View className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+              <Text className="text-xs text-sky-700 flex-1 leading-4">
+                Draft pricing — review before sending.
+              </Text>
+            </View>
+          )}
+          <View className="flex-row justify-between mt-2 pt-3 border-t-2 border-app-border-strong">
             <Text className="font-bold text-app-text-primary text-base">Subtotal</Text>
             <Text className="font-bold text-app-accent text-base">{formatCurrency(subtotal)}</Text>
           </View>
@@ -299,7 +313,7 @@ export function Step6Review() {
           </View>
         ) : (
           <Button onPress={handleSave} loading={saving} size="lg" className="w-full">
-            Save Estimate
+            Save Draft
           </Button>
         )}
       </View>

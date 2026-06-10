@@ -72,9 +72,13 @@ export const tokens = {
 // Status badge Tailwind class pairs — use in getStatusColor() and badge components.
 // Keys match the `status` values stored in the estimates table.
 export const statusColors = {
-  draft:  { bg: 'bg-stone-100',  text: 'text-stone-600'  },
-  sent:   { bg: 'bg-blue-50',    text: 'text-blue-800'   },
-  ready:  { bg: 'bg-green-100',  text: 'text-green-800'  },
+  draft:           { bg: 'bg-stone-100',  text: 'text-stone-600'  },
+  pricing_needed:  { bg: 'bg-amber-100',  text: 'text-amber-700'  },
+  draft_ready:     { bg: 'bg-sky-50',     text: 'text-sky-700'    },
+  review_pricing:  { bg: 'bg-sky-100',    text: 'text-sky-700'    },
+  needs_details:   { bg: 'bg-orange-100', text: 'text-orange-700' },
+  sent:            { bg: 'bg-blue-50',    text: 'text-blue-800'   },
+  ready:           { bg: 'bg-green-100',  text: 'text-green-800'  },
 } as const;
 
 export type StatusKey = keyof typeof statusColors;

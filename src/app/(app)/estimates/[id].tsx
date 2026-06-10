@@ -13,10 +13,10 @@ import { Eye, Trash2 } from "lucide-react-native";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EstimateEditor } from "@/components/estimate-editor/EstimateEditor";
 import { supabase } from "@/lib/supabase";
-import { getStatusColor, getStatusLabel } from "@/lib/utils";
+import { getStatusColor, getStatusLabel, getEffectiveStatusKey } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { tokens } from "@/styles";
-import type { SavedEstimate } from "@/types/estimate";
+import type { EstimateStatus, SavedEstimate } from "@/types/estimate";
 
 export default function EstimateDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,6 +25,8 @@ export default function EstimateDetailScreen() {
   const [estimate, setEstimate] = useState<SavedEstimate | null>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [savedStatus, setSavedStatus] = useState<EstimateStatus | null>(null);
+  const [missingQuestionsCount, setMissingQuestionsCount] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -34,7 +36,9 @@ export default function EstimateDetailScreen() {
       .eq("id", id)
       .single()
       .then(({ data }) => {
-        setEstimate(data as SavedEstimate);
+        const est = data as SavedEstimate;
+        setEstimate(est);
+        setMissingQuestionsCount((est?.missing_questions ?? []).length);
         setLoading(false);
       });
   }, [id]);
@@ -76,12 +80,20 @@ export default function EstimateDetailScreen() {
         showBack
         right={
           <View className="flex-row items-center gap-2">
-            {estimate && (
-              <Badge
-                label={getStatusLabel(estimate.status)}
-                className={getStatusColor(estimate.status)}
-              />
-            )}
+            {estimate && (() => {
+              const effectiveKey = getEffectiveStatusKey(
+                estimate.status,
+                estimate.prices_confirmed,
+                estimate.subtotal ?? 0,
+                missingQuestionsCount
+              );
+              return (
+                <Badge
+                  label={getStatusLabel(effectiveKey)}
+                  className={getStatusColor(effectiveKey)}
+                />
+              );
+            })()}
             <TouchableOpacity onPress={() => router.push(`/(app)/estimates/${id}/preview`)}>
               <Eye size={22} color={tokens.accent} />
             </TouchableOpacity>
@@ -98,15 +110,30 @@ export default function EstimateDetailScreen() {
         </View>
       ) : estimate ? (
         <>
-          {saved && (
-            <View className="bg-app-success-light border-b border-app-success-light px-4 py-2">
-              <Text className="text-app-success font-medium text-sm text-center">
-                ✓ Saved — status updated to "Ready to Send"
+          {saved && savedStatus && (
+            <View
+              className={
+                savedStatus === "ready"
+                  ? "bg-green-50 border-b border-green-100 px-4 py-2"
+                  : "bg-amber-50 border-b border-amber-100 px-4 py-2"
+              }
+            >
+              <Text
+                className={
+                  savedStatus === "ready"
+                    ? "text-green-700 font-medium text-sm text-center"
+                    : "text-amber-700 font-medium text-sm text-center"
+                }
+              >
+                {savedStatus === "ready"
+                  ? `✓ Saved — ${getStatusLabel(savedStatus)}`
+                  : `✓ Saved — ${getStatusLabel(savedStatus)}: add unit prices to finalize`}
               </Text>
             </View>
           )}
           <EstimateEditor
             estimateId={estimate.id}
+            pricesConfirmed={estimate.prices_confirmed}
             defaultValues={{
               jobSummary: estimate.job_summary ?? "",
               scopeOfWork: estimate.scope_of_work ?? "",
@@ -114,6 +141,7 @@ export default function EstimateDetailScreen() {
               materialsChecklist: estimate.materials_checklist ?? [],
               materialsChecked: estimate.materials_checked ?? [],
               missingQuestions: estimate.missing_questions ?? [],
+              optionalQuestions: estimate.optional_questions ?? [],
               clarifyingAnswers: estimate.clarifying_answers ?? [],
               assumptions: estimate.assumptions ?? [],
               optionalUpsells: estimate.optional_upsells ?? [],
@@ -123,10 +151,19 @@ export default function EstimateDetailScreen() {
             }}
             customer={estimate.jobs?.customers}
             job={estimate.jobs}
-            onSaved={() => {
+            onSaved={(status) => {
               setSaved(true);
-              setTimeout(() => setSaved(false), 3000);
+              setSavedStatus(status ?? null);
+              setTimeout(() => setSaved(false), 4000);
             }}
+            onPricesConfirmedChange={(confirmed, confirmedAt) =>
+              setEstimate(prev => prev ? {
+                ...prev,
+                prices_confirmed: confirmed,
+                prices_confirmed_at: confirmedAt ?? prev.prices_confirmed_at ?? null,
+              } : null)
+            }
+            onMissingQuestionsChange={setMissingQuestionsCount}
           />
         </>
       ) : (

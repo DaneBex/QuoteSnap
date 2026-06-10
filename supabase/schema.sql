@@ -125,7 +125,7 @@ create table public.estimates (
   customer_message     text,
   subtotal             numeric(10,2),
   total                numeric(10,2),
-  status               text not null default 'draft', -- draft | ready | sent
+  status               text not null default 'draft', -- draft | pricing_needed | draft_ready | ready | sent
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );
@@ -139,6 +139,9 @@ create policy "owner" on public.estimates
 -- ─────────────────────────────────────────────────────────
 alter table public.estimates add column if not exists materials_checked jsonb not null default '[]'::jsonb;
 alter table public.estimates add column if not exists clarifying_answers jsonb not null default '[]'::jsonb;
+alter table public.estimates add column if not exists optional_questions jsonb not null default '[]'::jsonb;
+alter table public.estimates add column if not exists prices_confirmed boolean not null default false;
+alter table public.estimates add column if not exists prices_confirmed_at timestamptz;
 
 -- ─────────────────────────────────────────────────────────
 -- STORAGE
