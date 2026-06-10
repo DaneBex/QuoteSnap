@@ -5,13 +5,14 @@ import {
   TextInput,
   Alert,
   TouchableOpacity,
+  Pressable,
   Linking,
   Platform,
   ActivityIndicator,
 } from "react-native";
 import { useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
-import { Copy, MessageSquare, Mail, MessageCircle, ChevronDown, ChevronUp } from "lucide-react-native";
+import { Copy, MessageSquare, Mail, MessageCircle, ChevronDown, ChevronUp, Check } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { BottomCTA } from "@/components/layout/BottomCTA";
 import { Button } from "@/components/ui/Button";
@@ -68,6 +69,53 @@ function EditableList({
           placeholderTextColor={tokens.textTertiary}
           className="bg-app-surface border border-app-border rounded-xl px-4 py-3 text-base text-app-text-primary mb-2"
         />
+      ))}
+    </View>
+  );
+}
+
+function MaterialsChecklist({
+  items,
+  onChange,
+}: {
+  items: string[];
+  onChange: (items: string[]) => void;
+}) {
+  const [checked, setChecked] = useState<boolean[]>(() => items.map(() => false));
+
+  const toggle = (i: number) =>
+    setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
+
+  return (
+    <View className="mb-6">
+      <Text className="text-lg font-bold text-app-text-primary mb-3">Materials Checklist</Text>
+      {items.map((item, i) => (
+        <View key={i} className="flex-row items-center gap-3 mb-2">
+          <Pressable
+            onPress={() => toggle(i)}
+            style={{ width: 24, height: 24 }}
+            className={`rounded-md border-2 items-center justify-center flex-shrink-0 ${
+              checked[i]
+                ? "bg-app-accent border-app-accent"
+                : "bg-app-surface border-app-border"
+            }`}
+          >
+            {checked[i] ? <Check size={14} color="#ffffff" /> : null}
+          </Pressable>
+          <TextInput
+            value={item}
+            onChangeText={(v) => {
+              const updated = [...items];
+              updated[i] = v;
+              onChange(updated);
+            }}
+            multiline
+            placeholder="Material item"
+            placeholderTextColor={tokens.textTertiary}
+            className="flex-1 bg-app-surface border border-app-border rounded-xl px-4 py-3 text-base text-app-text-primary"
+            style={checked[i] ? { opacity: 0.45 } : undefined}
+          />
+        </View>
       ))}
     </View>
   );
@@ -380,11 +428,9 @@ export function EstimateEditor({
         <LineItemsTable />
 
         {/* Materials */}
-        <EditableList
-          label="Materials Checklist"
+        <MaterialsChecklist
           items={materialsChecklist}
           onChange={(v) => setValue("materialsChecklist", v)}
-          placeholder="Material item"
         />
 
         {/* Clarifying Questions */}

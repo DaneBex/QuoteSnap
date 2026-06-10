@@ -5,8 +5,56 @@ import { formatCurrency } from "@/lib/utils";
 import { tokens } from "@/styles";
 import type { EstimatePayload } from "@/types/estimate";
 
+const UNIT_OPTIONS = ["each", "hrs", "day", "sq ft", "linear ft", "allowance", "fixed", "room", "section"];
+
+function UnitField({
+  value,
+  onChangeText,
+}: {
+  value: string;
+  onChangeText: (v: string) => void;
+}) {
+  return (
+    <View>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder="unit"
+        placeholderTextColor={tokens.textTertiary}
+        className="border border-app-border rounded-xl px-3 py-3 text-base text-app-text-primary mb-1.5"
+      />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View className="flex-row gap-1.5">
+          {UNIT_OPTIONS.map((opt) => {
+            const selected = value === opt;
+            return (
+              <TouchableOpacity
+                key={opt}
+                onPress={() => onChangeText(opt)}
+                className={`rounded-lg px-2 py-1 border ${
+                  selected
+                    ? "bg-app-accent-light border-app-accent"
+                    : "bg-app-surface-alt border-app-border"
+                }`}
+              >
+                <Text
+                  className={`text-xs ${
+                    selected ? "text-app-accent font-medium" : "text-app-text-secondary"
+                  }`}
+                >
+                  {opt}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 export function LineItemsTable() {
-  const { control, register, setValue } = useFormContext<EstimatePayload>();
+  const { control, setValue } = useFormContext<EstimatePayload>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "lineItems",
@@ -50,7 +98,10 @@ export function LineItemsTable() {
             onChangeText={(v) => setValue(`lineItems.${index}.description`, v)}
             placeholder="Description"
             placeholderTextColor={tokens.textTertiary}
+            multiline
+            textAlignVertical="top"
             className="border border-app-border rounded-xl px-3 py-3 text-base text-app-text-primary mb-2"
+            style={{ minHeight: 44 }}
           />
 
           <View className="flex-row gap-2 mb-2">
@@ -70,12 +121,9 @@ export function LineItemsTable() {
             </View>
             <View className="flex-1">
               <Text className="text-xs text-app-text-secondary mb-1">Unit</Text>
-              <TextInput
-                defaultValue={field.unit}
+              <UnitField
+                value={lineItems?.[index]?.unit ?? field.unit}
                 onChangeText={(v) => setValue(`lineItems.${index}.unit`, v)}
-                placeholder="hrs"
-                placeholderTextColor={tokens.textTertiary}
-                className="border border-app-border rounded-xl px-3 py-3 text-base text-app-text-primary"
               />
             </View>
             <View className="flex-1">
@@ -96,7 +144,7 @@ export function LineItemsTable() {
 
           <View className="flex-row justify-between items-center bg-app-background rounded-xl px-3 py-2">
             <Text className="text-app-text-secondary text-sm">Total</Text>
-            <Text className="font-bold text-app-text-primary">
+            <Text className="font-bold text-app-accent">
               {formatCurrency(
                 (Number(lineItems?.[index]?.qty) || 0) *
                   (Number(lineItems?.[index]?.unit_price) || 0)

@@ -176,7 +176,7 @@ export function EstimatePreview({
         <>
           <Divider />
           <Section title="Assumptions & Notes">
-            {estimate.assumptions.map((a, i) => (
+            {estimate.assumptions.slice(0, 4).map((a, i) => (
               <Text key={i} className="text-app-text-secondary mb-1 leading-5">• {a}</Text>
             ))}
           </Section>
