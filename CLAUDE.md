@@ -34,6 +34,12 @@ supabase/
 - Supabase RLS policies are the auth boundary. Every table has owner-only policies.
 - AI generation goes through `supabase.functions.invoke("generate-estimate")`, not a client-side API call.
 
+## Production Checklist
+
+**Supabase OAuth redirect URLs** — When deploying to production, add the production domain to Supabase:
+Authentication → URL Configuration → Redirect URLs → add `https://<your-production-domain>/auth/callback`
+Currently whitelisted for dev: `http://localhost:8081/auth/callback`
+
 ## Style System
 
 **Theme**: Warm Slate + Amber — minimalist, professional, contractor-focused.

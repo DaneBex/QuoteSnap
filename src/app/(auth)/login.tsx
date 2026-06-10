@@ -23,21 +23,27 @@ export default function LoginScreen() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingMagic, setLoadingMagic] = useState(false);
 
-  const redirectTo = makeRedirectUri({ scheme: "quotesnap", path: "auth/callback" });
+  const nativeRedirectTo = makeRedirectUri({ scheme: "quotesnap", path: "auth/callback" });
 
   const handleGoogle = async () => {
     setLoadingGoogle(true);
     try {
+      if (Platform.OS === "web") {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: `${window.location.origin}/auth/callback` },
+        });
+        if (error) throw error;
+        return; // browser redirects away
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
+        options: { redirectTo: nativeRedirectTo, skipBrowserRedirect: true },
       });
       if (error) throw error;
       if (data.url) {
-        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+        const result = await WebBrowser.openAuthSessionAsync(data.url, nativeRedirectTo);
         if (result.type === "success") {
           const url = new URL(result.url);
           const code = url.searchParams.get("code");
@@ -60,9 +66,12 @@ export default function LoginScreen() {
     }
     setLoadingMagic(true);
     try {
+      const magicLinkRedirect = Platform.OS === "web"
+        ? `${window.location.origin}/auth/callback`
+        : nativeRedirectTo;
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { emailRedirectTo: redirectTo },
+        options: { emailRedirectTo: magicLinkRedirect },
       });
       if (error) throw error;
       setMagicLinkSent(true);
