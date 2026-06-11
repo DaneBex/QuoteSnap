@@ -13,11 +13,19 @@ interface PageHeaderProps {
 export function PageHeader({ title, subtitle, showBack, right }: PageHeaderProps) {
   const router = useRouter();
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(app)/dashboard");
+    }
+  };
+
   return (
     <View className="bg-app-surface px-4 py-4 border-b border-app-border flex-row items-center">
       {showBack && (
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleBack}
           className="mr-3 -ml-1 p-1"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >

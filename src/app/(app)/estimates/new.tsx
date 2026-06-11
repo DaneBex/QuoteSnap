@@ -14,7 +14,11 @@ export default function NewEstimateScreen() {
 
   const handleClose = () => {
     reset();
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(app)/dashboard");
+    }
   };
 
   return (
