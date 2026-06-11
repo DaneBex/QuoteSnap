@@ -55,22 +55,34 @@ OUTPUT: Return ONLY valid JSON matching this exact schema:
   "customerMessage": "string"
 }`;
 
-const UPDATE_MODE_ADDENDUM = `
-REVISION MODE — ACTIVE WHEN CLARIFYING ANSWERS ARE PROVIDED:
+function buildUpdateModeAddendum(round: number): string {
+  const isLateRound = round >= 2;
+  const questionBudget = isLateRound
+    ? "missingQuestions ≤ 1, optionalQuestions ≤ 1"
+    : "missingQuestions ≤ 2, optionalQuestions ≤ 2";
+  const assumptionPressure = isLateRound
+    ? `R3b. ASSUME AND PROCEED — You are in round ${round} of revision. Any question that is not a hard blocker (an unknown that prevents writing any line item at all) MUST become an assumption, not a question. Produce a priced draft estimate now. If you still cannot set unit prices, use qty:1, unit:"allowance", unit_price:0 with a cost range in the description, and set estimateQuality to "ready".`
+    : `R3b. PREFER ASSUMPTIONS — This is round ${round} of revision. Convert non-critical unknowns into assumptions rather than questions. Produce priced line items for everything you have enough information to price.`;
+
+  return `
+REVISION MODE — ROUND ${round} — ACTIVE WHEN CLARIFYING ANSWERS ARE PROVIDED:
 
 You are REVISING an existing estimate, not starting over. These rules override general defaults:
 
 R1. INCORPORATE ANSWERS EVERYWHERE — apply new information to jobSummary, scopeOfWork, lineItem descriptions, materialsChecklist, assumptions, and customerMessage. Specific measurements, material grades, or scope details revealed by answers must appear in the relevant fields.
 
-R2. DO NOT RE-ASK ANSWERED QUESTIONS — do not include any question from ORIGINAL QUESTIONS BEING ANSWERED or PREVIOUSLY ANSWERED QUESTIONS in missingQuestions, even phrased differently. This is a hard rule.
+R2. DO NOT RE-ASK ANSWERED QUESTIONS — do not include any question from ORIGINAL QUESTIONS BEING ANSWERED or PREVIOUSLY ANSWERED QUESTIONS in missingQuestions or optionalQuestions, even phrased differently. This is a hard rule — no exceptions.
 
-R3. SHRINK QUESTIONS — the total count of (missingQuestions + optionalQuestions) must be strictly fewer than before answers were provided. Hard cap in revision mode: missingQuestions ≤ 3, optionalQuestions ≤ 2. If answers resolved all critical blockers, missingQuestions must be []. Do not generate new questions just because more information could theoretically exist.
+R3. SHRINK QUESTIONS — the total count of (missingQuestions + optionalQuestions) must be strictly fewer than before answers were provided. Hard cap in revision mode: ${questionBudget}. If answers resolved all critical blockers, missingQuestions MUST be []. Do not generate new questions just because more information could theoretically exist.
+
+${assumptionPressure}
 
 R4. REVISE customerMessage with specifics — reference specific details from the answers (material type, measurements, finish, etc.) rather than generic language. Do not ask for information that was already answered. Maintain the same neutral tone as rule 4 in the base prompt: no sales phrases, no implication the customer has committed.
 
-R5. UPGRADE estimateQuality — if answers resolved major unknowns (measurements, material grade, scope boundaries), set estimateQuality to "ready".
+R5. UPGRADE estimateQuality — if answers resolved major unknowns (measurements, material grade, scope boundaries), set estimateQuality to "ready". In round 2+, estimateQuality MUST be "ready" unless a measurement critical to all line items is still unknown.
 
 R6. REVISE, DO NOT REPLACE — treat CURRENT JOB SUMMARY and CURRENT SCOPE OF WORK as the working draft. Update only the parts that the answers change; preserve accurate framing.`;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -107,7 +119,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { jobType, customer, notes, photoDescriptions, clarifyingAnswers, previousAnswers, currentEstimate } = await req.json();
+    const { jobType, customer, notes, photoDescriptions, clarifyingAnswers, previousAnswers, currentEstimate, clarificationRound } = await req.json();
 
     photosIncluded = Array.isArray(photoDescriptions) && photoDescriptions.length > 0;
     const hasAnswers = Array.isArray(clarifyingAnswers) && clarifyingAnswers.length > 0;
@@ -159,7 +171,8 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join("\n");
 
-    const systemPrompt = hasAnswers ? SYSTEM_PROMPT + "\n\n" + UPDATE_MODE_ADDENDUM : SYSTEM_PROMPT;
+    const round = (typeof clarificationRound === "number" && clarificationRound > 0) ? clarificationRound : 1;
+    const systemPrompt = hasAnswers ? SYSTEM_PROMPT + "\n\n" + buildUpdateModeAddendum(round) : SYSTEM_PROMPT;
     promptChars = systemPrompt.length + userPrompt.length;
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });

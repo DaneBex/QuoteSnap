@@ -95,12 +95,14 @@ create policy "owner" on public.jobs
 -- JOB PHOTOS
 -- ─────────────────────────────────────────────────────────
 create table public.job_photos (
-  id            uuid primary key default gen_random_uuid(),
-  job_id        uuid not null references public.jobs(id) on delete cascade,
-  user_id       uuid not null references public.users(id) on delete cascade,
-  storage_path  text not null,
-  description   text,
-  created_at    timestamptz not null default now()
+  id                          uuid primary key default gen_random_uuid(),
+  job_id                      uuid not null references public.jobs(id) on delete cascade,
+  user_id                     uuid not null references public.users(id) on delete cascade,
+  storage_path                text not null,
+  description                 text,
+  include_in_customer_estimate boolean not null default false,
+  sort_order                  integer not null default 0,
+  created_at                  timestamptz not null default now()
 );
 alter table public.job_photos enable row level security;
 create policy "owner" on public.job_photos
@@ -142,6 +144,10 @@ alter table public.estimates add column if not exists clarifying_answers jsonb n
 alter table public.estimates add column if not exists optional_questions jsonb not null default '[]'::jsonb;
 alter table public.estimates add column if not exists prices_confirmed boolean not null default false;
 alter table public.estimates add column if not exists prices_confirmed_at timestamptz;
+alter table public.estimates add column if not exists clarification_round integer not null default 0;
+
+alter table public.job_photos add column if not exists include_in_customer_estimate boolean not null default false;
+alter table public.job_photos add column if not exists sort_order integer not null default 0;
 
 -- ─────────────────────────────────────────────────────────
 -- STORAGE

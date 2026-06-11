@@ -147,6 +147,7 @@ export default function EstimateDetailScreen() {
               missingQuestions: estimate.missing_questions ?? [],
               optionalQuestions: estimate.optional_questions ?? [],
               clarifyingAnswers: estimate.clarifying_answers ?? [],
+              clarificationRound: estimate.clarification_round ?? 0,
               assumptions: estimate.assumptions ?? [],
               optionalUpsells: estimate.optional_upsells ?? [],
               customerMessage: estimate.customer_message ?? "",

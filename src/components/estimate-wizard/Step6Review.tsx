@@ -183,6 +183,8 @@ export function Step6Review() {
               job_id: job.id,
               user_id: user.id,
               storage_path: p.storageKey!,
+              include_in_customer_estimate: false,
+              sort_order: photos.indexOf(p),
             }))
         );
       }

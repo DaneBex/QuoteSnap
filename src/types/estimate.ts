@@ -1,3 +1,15 @@
+export interface JobPhoto {
+  id: string;
+  job_id: string;
+  user_id: string;
+  storage_path: string;
+  description: string | null;
+  include_in_customer_estimate: boolean;
+  sort_order: number;
+  created_at: string;
+  signedUrl?: string;
+}
+
 export interface ClarifyingAnswer {
   question: string;
   answer: string;
@@ -52,6 +64,7 @@ export interface SavedEstimate {
   status: EstimateStatus;
   prices_confirmed: boolean;
   prices_confirmed_at: string | null;
+  clarification_round: number;
   created_at: string;
   updated_at: string;
   jobs?: {

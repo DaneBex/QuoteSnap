@@ -18,6 +18,7 @@ import { BottomCTA } from "@/components/layout/BottomCTA";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LineItemsTable } from "./LineItemsTable";
+import { JobPhotosSection } from "./JobPhotosSection";
 import { supabase } from "@/lib/supabase";
 import { tokens } from "@/styles";
 import { computeEstimateStatus, formatCurrency, parseAmount } from "@/lib/utils";
@@ -30,6 +31,7 @@ interface CustomerInfo {
 }
 
 interface JobInfo {
+  id?: string | null;
   job_type?: string | null;
   notes?: string | null;
 }
@@ -41,6 +43,7 @@ interface EstimateEditorProps {
     total?: number;
     materialsChecked?: boolean[];
     clarifyingAnswers?: ClarifyingAnswer[];
+    clarificationRound?: number;
   };
   customer?: CustomerInfo | null;
   job?: JobInfo | null;
@@ -371,6 +374,10 @@ export function EstimateEditor({
     () => defaultValues.clarifyingAnswers ?? []
   );
 
+  const [clarificationRound, setClarificationRound] = useState<number>(
+    () => defaultValues.clarificationRound ?? 0
+  );
+
   const methods = useForm<EstimatePayload>({
     defaultValues: {
       jobSummary: defaultValues.jobSummary ?? "",
@@ -504,6 +511,7 @@ export function EstimateEditor({
           photoDescriptions: [],
           clarifyingAnswers: pairs.length > 0 ? pairs : undefined,
           previousAnswers: resolvedAnswerHistory,
+          clarificationRound: clarificationRound,
           currentEstimate: {
             lineItems: currentValues.lineItems,
             jobSummary: currentValues.jobSummary,
@@ -556,6 +564,7 @@ export function EstimateEditor({
         subtotal,
         total: subtotal,
         prices_confirmed: false,
+        clarification_round: clarificationRound + 1,
         updated_at: new Date().toISOString(),
       };
       if (__DEV__) console.log("[EstimateEditor] Regenerate PATCH payload:", regeneratePayload);
@@ -568,6 +577,7 @@ export function EstimateEditor({
       if (updateErr) throw updateErr;
 
       setResolvedAnswerHistory(mergedAnswers);
+      setClarificationRound(clarificationRound + 1);
       applyRegeneratedPayload(payload);
       setPricesConfirmed(false);
     } catch (err) {
@@ -597,7 +607,7 @@ export function EstimateEditor({
         materials_checked: materialsChecked,
         missing_questions: data.missingQuestions,
         optional_questions: optionalQuestions,
-        clarifying_answers: clarifyingAnswerPairs,
+        clarifying_answers: resolvedAnswerHistory,
         assumptions: data.assumptions,
         optional_upsells: data.optionalUpsells,
         customer_message: data.customerMessage,
@@ -606,6 +616,7 @@ export function EstimateEditor({
         status: newStatus,
         prices_confirmed: pricesConfirmed,
         prices_confirmed_at: pricesConfirmed ? new Date().toISOString() : null,
+        clarification_round: clarificationRound,
         updated_at: new Date().toISOString(),
       };
       if (__DEV__) console.log("[EstimateEditor] Save PATCH payload:", savePayload);
@@ -703,6 +714,9 @@ export function EstimateEditor({
           checked={materialsChecked}
           onCheckedChange={setMaterialsChecked}
         />
+
+        {/* Job Photos */}
+        {job?.id && <JobPhotosSection jobId={job.id} />}
 
         {/* Clarifying Questions — critical blockers */}
         {missingQuestions.length > 0 && (
