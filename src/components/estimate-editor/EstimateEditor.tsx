@@ -70,6 +70,8 @@ function EditableList({
   onChange: (items: string[]) => void;
   placeholder?: string;
 }) {
+  const [itemHeights, setItemHeights] = useState<Record<number, number>>({});
+
   return (
     <View className="mb-6">
       <Text className="text-lg font-bold text-app-text-primary mb-3">{label}</Text>
@@ -84,10 +86,21 @@ function EditableList({
           }}
           multiline
           scrollEnabled={false}
+          onContentSizeChange={(e) =>
+            setItemHeights((prev) => ({
+              ...prev,
+              [i]: Math.max(40, e.nativeEvent.contentSize.height),
+            }))
+          }
           placeholder={placeholder}
           placeholderTextColor={tokens.textTertiary}
           className="bg-app-surface border border-app-border rounded-xl px-4 py-3 text-base text-app-text-primary mb-2"
-          style={Platform.OS === "web" ? { overflow: "hidden" } : undefined}
+          style={{
+            minHeight: 40,
+            height: itemHeights[i] ?? 40,
+            textAlignVertical: "top",
+            ...(Platform.OS === "web" ? { overflow: "hidden" } : {}),
+          }}
         />
       ))}
     </View>
