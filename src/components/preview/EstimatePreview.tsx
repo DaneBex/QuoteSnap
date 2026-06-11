@@ -1,17 +1,37 @@
-import { ScrollView, View, Text, TouchableOpacity, Share, Platform } from "react-native";
-import { Printer, Share2 } from "lucide-react-native";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import {
+  ScrollView,
+  View,
+  Text,
+  Image,
+  Platform,
+  useWindowDimensions,
+} from "react-native";
+import { AlertTriangle } from "lucide-react-native";
+import { formatCurrency, formatDate, getEffectiveStatusKey } from "@/lib/utils";
 import { tokens } from "@/styles";
-import type { SavedEstimate } from "@/types/estimate";
+import type { SavedEstimate, JobPhoto } from "@/types/estimate";
+
+const DEFAULT_TERMS =
+  "This estimate is based on the scope described above and is subject to change if site conditions, material selections, or project scope change. Any additional work will be discussed and approved before proceeding.";
 
 interface EstimatePreviewProps {
   estimate: SavedEstimate;
   businessName?: string;
   businessPhone?: string;
+  businessEmail?: string;
+  businessAddress?: string;
+  businessLogoUrl?: string;
+  businessLicense?: string;
+  businessTerms?: string;
+  photos?: JobPhoto[];
+}
+
+function cleanBulletText(text: string): string {
+  return text.replace(/^[\s•\-\*]+/, "").trim();
 }
 
 function Divider() {
-  return <View className="h-px bg-app-border my-4" />;
+  return <View className="h-px bg-app-border my-5" />;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -25,192 +45,357 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function MetaField({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="mb-4" style={{ minWidth: 140, flex: 1 }}>
+      <Text className="text-xs text-app-text-tertiary uppercase tracking-wide mb-0.5">{label}</Text>
+      <Text className="text-app-text-primary font-medium text-sm">{value}</Text>
+    </View>
+  );
+}
+
 export function EstimatePreview({
   estimate,
   businessName,
   businessPhone,
+  businessEmail,
+  businessAddress,
+  businessLogoUrl,
+  businessLicense,
+  businessTerms,
+  photos = [],
 }: EstimatePreviewProps) {
+  const { width } = useWindowDimensions();
   const customer = estimate.jobs?.customers;
   const lineItems = estimate.line_items ?? [];
   const subtotal = estimate.subtotal ?? 0;
 
-  const handleShare = async () => {
-    if (Platform.OS === "web") {
-      window.print();
-      return;
-    }
-    try {
-      await Share.share({
-        message: [
-          businessName ? `${businessName} — Estimate` : "Estimate",
-          customer ? `Customer: ${customer.name}` : "",
-          estimate.job_summary ?? "",
-          "",
-          "Prepared on " + formatDate(estimate.created_at),
-        ]
-          .filter(Boolean)
-          .join("\n"),
-      });
-    } catch {
-      // cancelled
-    }
+  const effectiveStatus = getEffectiveStatusKey(
+    estimate.status,
+    estimate.prices_confirmed,
+    subtotal,
+    estimate.missing_questions?.length ?? 0,
+    lineItems.some((li) => (Number(li.unit_price) || 0) === 0)
+  );
+  const isReady = effectiveStatus === "ready" || effectiveStatus === "sent";
+
+  const draftMessage: Record<string, string> = {
+    pricing_needed: "Pricing incomplete — contractor must add prices before sending.",
+    needs_details: "Details needed — this estimate is not ready to send.",
+    review_pricing: "Draft pricing — contractor must confirm prices before sending.",
   };
+
+  const contactParts = [businessPhone, businessEmail].filter(Boolean);
+
+  const scopeLines =
+    estimate.scope_of_work
+      ?.split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean) ?? [];
+
+  const customerPhotos = photos.filter((p) => p.signedUrl);
+  const isWide = width > 600;
+
+  const hasBusinessInfo = businessName || businessPhone || businessEmail || businessAddress;
 
   return (
     <ScrollView
-      className="flex-1 bg-app-surface"
-      contentContainerStyle={{ padding: 24, paddingBottom: 60 }}
+      className="flex-1 bg-stone-100"
+      contentContainerStyle={{ padding: isWide ? 32 : 16, paddingBottom: 80 }}
     >
-      {/* Header */}
-      <View className="flex-row justify-between items-start mb-6">
-        <View>
-          <Text className="text-2xl font-bold text-app-text-primary">
-            {businessName ?? "Estimate"}
+      {/* Draft warning banner */}
+      {!isReady && (
+        <View className="flex-row items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+          <AlertTriangle size={16} color={tokens.accent} />
+          <Text className="text-sm text-amber-700 font-medium flex-1">
+            {draftMessage[effectiveStatus] ?? "This estimate is a draft and is not ready to send."}
           </Text>
-          {businessPhone && (
-            <Text className="text-app-text-secondary mt-0.5">{businessPhone}</Text>
-          )}
         </View>
-        <TouchableOpacity
-          onPress={handleShare}
-          className="bg-app-accent rounded-xl px-4 py-2.5 flex-row items-center gap-2"
-        >
-          {Platform.OS === "web" ? (
-            <Printer size={18} color={tokens.textInverse} />
-          ) : (
-            <Share2 size={18} color={tokens.textInverse} />
-          )}
-          <Text className="text-app-text-inverse font-semibold">
-            {Platform.OS === "web" ? "Print / PDF" : "Share"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <Divider />
-
-      {/* Customer Info */}
-      {customer && (
-        <Section title="Prepared For">
-          <Text className="text-app-text-primary font-semibold text-base">{customer.name}</Text>
-          {customer.address && (
-            <Text className="text-app-text-secondary">{customer.address}</Text>
-          )}
-          {customer.phone && (
-            <Text className="text-app-text-secondary">{customer.phone}</Text>
-          )}
-          {customer.email && (
-            <Text className="text-app-text-secondary">{customer.email}</Text>
-          )}
-        </Section>
       )}
 
-      <View className="flex-row justify-between mb-6">
-        <View>
-          <Text className="text-xs text-app-text-tertiary uppercase tracking-wide">Job Type</Text>
-          <Text className="text-app-text-primary font-medium mt-0.5">
-            {estimate.jobs?.job_type ?? "—"}
-          </Text>
-        </View>
-        <View className="items-end">
-          <Text className="text-xs text-app-text-tertiary uppercase tracking-wide">Date</Text>
-          <Text className="text-app-text-primary font-medium mt-0.5">
-            {formatDate(estimate.created_at)}
-          </Text>
-        </View>
-      </View>
-
-      <Divider />
-
-      {/* Summary */}
-      {estimate.job_summary && (
-        <Section title="Job Summary">
-          <Text className="text-app-text-secondary leading-6">{estimate.job_summary}</Text>
-        </Section>
-      )}
-
-      {/* Scope */}
-      {estimate.scope_of_work && (
-        <Section title="Scope of Work">
-          <Text className="text-app-text-secondary leading-6">{estimate.scope_of_work}</Text>
-        </Section>
-      )}
-
-      <Divider />
-
-      {/* Line Items */}
-      <Section title="Pricing Breakdown">
-        {/* Header row */}
-        <View className="flex-row pb-2 border-b border-app-border">
-          <Text className="flex-1 text-xs font-bold text-app-text-secondary uppercase">Description</Text>
-          <Text className="w-12 text-xs font-bold text-app-text-secondary uppercase text-right">Qty</Text>
-          <Text className="w-20 text-xs font-bold text-app-text-secondary uppercase text-right">Price</Text>
-          <Text className="w-20 text-xs font-bold text-app-text-secondary uppercase text-right">Total</Text>
-        </View>
-
-        {lineItems.map((item, i) => (
-          <View key={i} className="flex-row py-3 border-b border-app-border">
-            <View className="flex-1 pr-3">
-              <Text className="text-app-text-primary font-medium">{item.description}</Text>
-              <Text className="text-app-text-secondary text-xs">{item.unit}</Text>
+      {/* Main document card */}
+      <View
+        className="bg-white rounded-2xl overflow-hidden"
+        style={{ shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 2 } }}
+      >
+        {/* Document header */}
+        <View className="px-6 pt-6 pb-4">
+          {/* Business branding row */}
+          {hasBusinessInfo ? (
+            <View className="flex-row items-start gap-4 mb-5">
+              {businessLogoUrl && (
+                <Image
+                  source={{ uri: businessLogoUrl }}
+                  style={{ width: 64, height: 64, borderRadius: 8 }}
+                  resizeMode="contain"
+                />
+              )}
+              <View className="flex-1">
+                <Text className="text-xl font-bold text-app-text-primary">
+                  {businessName ?? ""}
+                </Text>
+                {contactParts.length > 0 && (
+                  <Text className="text-sm text-app-text-secondary mt-0.5">
+                    {contactParts.join("  ·  ")}
+                  </Text>
+                )}
+                {businessAddress && (
+                  <Text className="text-sm text-app-text-secondary mt-0.5">{businessAddress}</Text>
+                )}
+                {businessLicense && (
+                  <Text className="text-xs text-app-text-tertiary mt-1">
+                    License #{businessLicense}
+                  </Text>
+                )}
+              </View>
             </View>
-            <Text className="w-12 text-app-text-secondary text-right">{item.qty}</Text>
-            <Text className="w-20 text-app-text-secondary text-right">
-              {formatCurrency(item.unit_price)}
-            </Text>
-            <Text className="w-20 text-app-text-primary font-semibold text-right">
-              {formatCurrency(item.total)}
+          ) : null}
+
+          {/* ESTIMATE title — top border only when business info is present above */}
+          <View
+            className={`${hasBusinessInfo ? "border-t " : ""}border-b border-app-border py-3 mb-5`}
+          >
+            <Text className="text-center text-xs font-bold text-app-text-tertiary uppercase tracking-[0.2em]">
+              Estimate
             </Text>
           </View>
-        ))}
 
-        <View className="flex-row justify-between pt-4 mt-1">
-          <Text className="font-bold text-app-text-primary text-base">Total Estimate</Text>
-          <Text className="font-bold text-app-accent text-lg">
-            {formatCurrency(subtotal)}
-          </Text>
+          {/* Metadata grid */}
+          <View className="flex-row flex-wrap gap-x-6">
+            {customer && <MetaField label="Prepared For" value={customer.name} />}
+            <MetaField label="Date" value={formatDate(estimate.created_at)} />
+            {estimate.jobs?.job_type && (
+              <MetaField label="Job Type" value={estimate.jobs.job_type} />
+            )}
+            {customer?.address && (
+              <MetaField label="Job Site" value={customer.address} />
+            )}
+          </View>
+
+          {/* Customer contact */}
+          {customer && (customer.phone || customer.email) && (
+            <View className="flex-row flex-wrap gap-x-4 mb-1 -mt-1">
+              {customer.phone && (
+                <Text className="text-xs text-app-text-tertiary">{customer.phone}</Text>
+              )}
+              {customer.email && (
+                <Text className="text-xs text-app-text-tertiary">{customer.email}</Text>
+              )}
+            </View>
+          )}
         </View>
-      </Section>
 
-      {/* Assumptions */}
-      {estimate.assumptions?.length > 0 && (
-        <>
+        <View className="h-px bg-app-border mx-6" />
+
+        {/* Body sections */}
+        <View className="px-6 pt-5 pb-6">
+
+          {/* Job Summary */}
+          {estimate.job_summary && (
+            <Section title="Job Summary">
+              <Text className="text-app-text-secondary leading-6 text-sm">
+                {estimate.job_summary}
+              </Text>
+            </Section>
+          )}
+
+          {/* Scope of Work */}
+          {scopeLines.length > 0 && (
+            <Section title="Scope of Work">
+              {scopeLines.length > 1 ? (
+                scopeLines.map((line, i) => (
+                  <Text key={i} className="text-app-text-secondary text-sm leading-6">
+                    {"• "}{cleanBulletText(line)}
+                  </Text>
+                ))
+              ) : (
+                <Text className="text-app-text-secondary text-sm leading-6">
+                  {cleanBulletText(scopeLines[0])}
+                </Text>
+              )}
+            </Section>
+          )}
+
           <Divider />
-          <Section title="Assumptions & Notes">
-            {estimate.assumptions.slice(0, 4).map((a, i) => (
-              <Text key={i} className="text-app-text-secondary mb-1 leading-5">• {a}</Text>
-            ))}
+
+          {/* Pricing Breakdown */}
+          <Section title="Pricing Breakdown">
+            {isWide ? (
+              <>
+                {/* Table header — desktop/print only */}
+                <View className="flex-row pb-2 border-b border-app-border">
+                  <Text className="flex-1 text-xs font-bold text-app-text-secondary uppercase">
+                    Description
+                  </Text>
+                  <Text className="w-10 text-xs font-bold text-app-text-secondary uppercase text-right">
+                    Qty
+                  </Text>
+                  <Text className="w-16 text-xs font-bold text-app-text-secondary uppercase text-right">
+                    Unit
+                  </Text>
+                  <Text className="w-20 text-xs font-bold text-app-text-secondary uppercase text-right">
+                    Unit Price
+                  </Text>
+                  <Text className="w-20 text-xs font-bold text-app-text-secondary uppercase text-right">
+                    Total
+                  </Text>
+                </View>
+
+                {lineItems.map((item, i) => (
+                  <View key={i} className="flex-row py-3 border-b border-app-border">
+                    <Text className="flex-1 pr-3 text-app-text-primary text-sm font-medium">
+                      {item.description}
+                    </Text>
+                    <Text className="w-10 text-app-text-secondary text-sm text-right">
+                      {item.qty}
+                    </Text>
+                    <Text className="w-16 text-app-text-secondary text-sm text-right">
+                      {item.unit}
+                    </Text>
+                    <Text className="w-20 text-app-text-secondary text-sm text-right">
+                      {formatCurrency(item.unit_price)}
+                    </Text>
+                    <Text className="w-20 text-app-text-primary text-sm font-semibold text-right">
+                      {formatCurrency(item.total)}
+                    </Text>
+                  </View>
+                ))}
+              </>
+            ) : (
+              <>
+                {/* Mobile cards */}
+                {lineItems.map((item, i) => (
+                  <View key={i} className="py-3 border-b border-app-border">
+                    <Text className="text-app-text-primary text-sm font-medium mb-1.5">
+                      {item.description}
+                    </Text>
+                    <View className="flex-row justify-between items-start">
+                      <View>
+                        <Text className="text-xs text-app-text-tertiary">
+                          Qty: {item.qty}{"  "}{item.unit}
+                        </Text>
+                        <Text className="text-xs text-app-text-secondary mt-0.5">
+                          Unit Price: {formatCurrency(item.unit_price)}
+                        </Text>
+                      </View>
+                      <Text className="text-app-text-primary text-sm font-semibold">
+                        {formatCurrency(item.total)}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* Total row — same for both layouts */}
+            <View className="flex-row justify-between items-center pt-4 mt-1 border-t-2 border-app-border-strong">
+              <Text className="font-bold text-app-text-primary text-base">Total Estimate</Text>
+              <Text className="font-bold text-app-accent text-xl">
+                {isReady ? formatCurrency(subtotal) : "TBD"}
+              </Text>
+            </View>
           </Section>
-        </>
-      )}
 
-      {/* Customer Message */}
-      {estimate.customer_message && (
-        <>
+          {/* Job Photos */}
+          {customerPhotos.length > 0 && (
+            <>
+              <Divider />
+              <Section title="Job Photos">
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+                  {customerPhotos.map((photo) => (
+                    <View
+                      key={photo.id}
+                      style={{ width: isWide ? "48%" : "100%", minWidth: 200 }}
+                    >
+                      <View
+                        style={{
+                          width: "100%",
+                          aspectRatio: 4 / 3,
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          backgroundColor: tokens.surfaceAlt,
+                        }}
+                      >
+                        <Image
+                          source={{ uri: photo.signedUrl! }}
+                          style={{ width: "100%", height: "100%" }}
+                          resizeMode="cover"
+                        />
+                      </View>
+                      {photo.description ? (
+                        <Text className="text-xs text-app-text-secondary mt-1.5">
+                          {photo.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              </Section>
+            </>
+          )}
+
+          {/* Assumptions */}
+          {estimate.assumptions?.length > 0 && (
+            <>
+              <Divider />
+              <Section title="Notes & Assumptions">
+                {estimate.assumptions.map((a, i) => (
+                  <Text key={i} className="text-app-text-secondary text-sm mb-1.5 leading-5">
+                    {"• "}{cleanBulletText(a)}
+                  </Text>
+                ))}
+              </Section>
+            </>
+          )}
+
+          {/* Customer Message */}
+          {estimate.customer_message && (
+            <>
+              <Divider />
+              <Section title="Message">
+                <Text className="text-app-text-secondary text-sm leading-6 italic">
+                  {estimate.customer_message}
+                </Text>
+              </Section>
+            </>
+          )}
+
           <Divider />
-          <Section title="Message">
-            <Text className="text-app-text-secondary leading-6 italic">
-              {estimate.customer_message}
+
+          {/* Terms */}
+          <Section title="Terms">
+            <Text className="text-app-text-secondary text-sm leading-6">
+              {businessTerms ?? DEFAULT_TERMS}
             </Text>
           </Section>
-        </>
-      )}
 
-      {/* Signature */}
-      <Divider />
-      <View className="mt-4">
-        <Text className="text-xs text-app-text-tertiary mb-6">
-          This estimate is subject to change upon on-site verification. Final price
-          confirmed before work begins.
-        </Text>
-        <View className="flex-row gap-12">
-          <View className="flex-1">
-            <View className="border-b border-app-border-strong mb-1 pb-6" />
-            <Text className="text-xs text-app-text-secondary">Contractor Signature</Text>
+          <Divider />
+
+          {/* Signature */}
+          <View className="mt-2 mb-2">
+            <View className="mb-6">
+              <View className="flex-row items-end gap-3 mb-1">
+                <Text className="text-sm text-app-text-secondary w-44">Contractor Signature</Text>
+                <View className="flex-1 border-b border-app-border-strong pb-5" />
+                <Text className="text-sm text-app-text-secondary">Date</Text>
+                <View style={{ width: 80 }} className="border-b border-app-border-strong pb-5" />
+              </View>
+            </View>
+
+            <View className="mb-6">
+              <View className="flex-row items-end gap-3 mb-1">
+                <Text className="text-sm text-app-text-secondary w-44">Customer Approval</Text>
+                <View className="flex-1 border-b border-app-border-strong pb-5" />
+                <Text className="text-sm text-app-text-secondary">Date</Text>
+                <View style={{ width: 80 }} className="border-b border-app-border-strong pb-5" />
+              </View>
+            </View>
+
+            <Text className="text-xs text-app-text-tertiary mt-2">
+              Customer approval indicates acceptance of the scope and estimate total listed above.
+            </Text>
           </View>
-          <View className="flex-1">
-            <View className="border-b border-app-border-strong mb-1 pb-6" />
-            <Text className="text-xs text-app-text-secondary">Customer Signature / Date</Text>
-          </View>
+
         </View>
       </View>
     </ScrollView>
