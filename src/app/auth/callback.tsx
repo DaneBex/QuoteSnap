@@ -60,6 +60,8 @@ export default function AuthCallback() {
     handleCallback();
   }, []);
 
+  console.log("[auth/callback] Rendering callback screen", { error });
+
   if (error) {
     return (
       <View className="flex-1 bg-app-surface items-center justify-center px-6">
