@@ -78,41 +78,55 @@ const debugFetch: typeof fetch = async (input, init) => {
     headersIsNative: h ? isNativeHeaders : "n/a",
     signalIsPresent: !!s,
     signalIsNative: s ? isNativeSignal : "n/a",
-    globalHeadersIsWindowHeaders:
-      typeof Headers !== "undefined" && typeof window !== "undefined"
-        ? (Headers as unknown) === window.Headers
-        : "n/a",
+    bodyType: Object.prototype.toString.call(init?.body),
+    initKeys: init ? Object.keys(init) : null,
   });
 
-  // Supabase captures fetch globals (Headers, AbortController) in closures at module
-  // init time, before our global-restore runs. Those captured constructors may be
-  // polyfilled versions, producing non-native instances that Chrome's window.fetch
-  // rejects with "Invalid value". Sanitize every non-serializable field here.
-  let patchedInit = init;
+  // Build a completely clean RequestInit from scratch using only primitive/safe values.
+  // Spreading the original init risks carrying non-native objects (polyfilled Headers,
+  // AbortSignal, ReadableStream body, extra unknown props) that Chrome's fetch rejects.
+  const safeInit: RequestInit = {};
+  if (init?.method)                   safeInit.method         = init.method;
+  if (init?.mode)                     safeInit.mode           = init.mode;
+  if (init?.credentials)              safeInit.credentials    = init.credentials;
+  if (init?.cache)                    safeInit.cache          = init.cache;
+  if (init?.redirect)                 safeInit.redirect       = init.redirect;
+  if (init?.referrer)                 safeInit.referrer       = init.referrer;
+  if (init?.referrerPolicy)           safeInit.referrerPolicy = init.referrerPolicy;
+  if (init?.integrity)                safeInit.integrity      = init.integrity;
+  if (init?.keepalive !== undefined)  safeInit.keepalive      = init.keepalive;
+  if (init?.body !== undefined)       safeInit.body           = init.body as BodyInit;
 
-  if (h && !isNativeHeaders) {
-    const plain: Record<string, string> = {};
-    if (typeof (h as any).forEach === "function") {
-      (h as any).forEach((v: string, k: string) => { plain[k] = v; });
+  if (h) {
+    if (isNativeHeaders) {
+      safeInit.headers = h;
     } else {
-      Object.assign(plain, h);
+      const plain: Record<string, string> = {};
+      if (typeof (h as any).forEach === "function") {
+        (h as any).forEach((v: string, k: string) => { plain[k] = v; });
+      } else {
+        Object.assign(plain, h);
+      }
+      console.warn("[supabase] fetch: normalized non-native Headers to plain object");
+      safeInit.headers = plain;
     }
-    console.warn("[supabase] fetch: normalized non-native Headers to plain object");
-    patchedInit = { ...patchedInit, headers: plain };
   }
 
-  if (s && !isNativeSignal) {
-    console.warn("[supabase] fetch: stripped non-native AbortSignal");
-    const { signal: _dropped, ...rest } = patchedInit as RequestInit & { signal?: unknown };
-    patchedInit = rest as RequestInit;
+  if (s) {
+    if (isNativeSignal) {
+      safeInit.signal = s;
+    } else {
+      console.warn("[supabase] fetch: stripped non-native AbortSignal");
+    }
   }
 
   try {
-    return await window.fetch(urlStr, patchedInit);
+    return await window.fetch(urlStr, safeInit);
   } catch (err) {
     console.error("[supabase] fetch threw", {
       url: urlStr,
       errMessage: err instanceof Error ? err.message : String(err),
+      safeInitKeys: Object.keys(safeInit),
     });
     throw err;
   }
