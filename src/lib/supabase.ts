@@ -13,9 +13,12 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 console.log("[supabase] init", {
   urlDefined: !!supabaseUrl,
-  urlPrefix: supabaseUrl?.slice(0, 30) ?? "MISSING",
+  urlLength: supabaseUrl?.length,
+  urlPrefix: supabaseUrl?.slice(0, 40) ?? "MISSING",
+  urlSuffix: supabaseUrl?.slice(-5) ?? "MISSING",
+  urlCharCodes: supabaseUrl ? [...supabaseUrl].slice(-3).map(c => c.charCodeAt(0)) : "MISSING",
   keyDefined: !!supabaseAnonKey,
-  keyPrefix: supabaseAnonKey?.slice(0, 10) ?? "MISSING",
+  keyLength: supabaseAnonKey?.length,
   platform: Platform.OS,
 });
 
@@ -43,6 +46,27 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
+const debugFetch: typeof fetch = async (input, init) => {
+  const urlStr = input instanceof Request ? input.url : String(input);
+  console.log("[supabase] fetch →", {
+    urlType: typeof input,
+    urlStr,
+    urlLength: urlStr.length,
+    urlValid: (() => { try { new URL(urlStr); return true; } catch { return false; } })(),
+    method: init?.method ?? "GET",
+  });
+  try {
+    return await fetch(input as string, init);
+  } catch (err) {
+    console.error("[supabase] fetch threw", {
+      urlStr,
+      errMessage: err instanceof Error ? err.message : String(err),
+      errName: err instanceof Error ? err.name : undefined,
+    });
+    throw err;
+  }
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: ExpoSecureStoreAdapter,
@@ -50,4 +74,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
+  global: { fetch: debugFetch },
 });
