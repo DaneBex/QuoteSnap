@@ -7,10 +7,11 @@ create extension if not exists "pgcrypto";
 -- USERS (mirrors auth.users)
 -- ─────────────────────────────────────────────────────────
 create table public.users (
-  id          uuid primary key references auth.users(id) on delete cascade,
-  email       text not null,
-  full_name   text,
-  created_at  timestamptz not null default now()
+  id             uuid primary key references auth.users(id) on delete cascade,
+  email          text not null,
+  full_name      text,
+  has_seen_demo  boolean not null default false,
+  created_at     timestamptz not null default now()
 );
 alter table public.users enable row level security;
 create policy "own record select" on public.users for select using (auth.uid() = id);
@@ -149,6 +150,8 @@ alter table public.estimates add column if not exists clarification_round intege
 
 alter table public.job_photos add column if not exists include_in_customer_estimate boolean not null default false;
 alter table public.job_photos add column if not exists sort_order integer not null default 0;
+
+alter table public.users add column if not exists has_seen_demo boolean not null default false;
 
 -- ─────────────────────────────────────────────────────────
 -- STORAGE

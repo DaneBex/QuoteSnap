@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import { BottomCTA } from "@/components/layout/BottomCTA";
 import { supabase } from "@/lib/supabase";
+import { useDemoStore } from "@/stores/demoStore";
 import { tokens } from "@/styles";
 
 interface BusinessForm {
@@ -57,6 +58,7 @@ function Field({
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const { startWalkthrough } = useDemoStore();
   const [form, setForm] = useState<BusinessForm>({
     name: "",
     phone: "",
@@ -165,6 +167,12 @@ export default function SettingsScreen() {
           <Field label="License Number" field="license_number" placeholder="TX-123456" form={form} setForm={setForm} />
 
           <View className="mt-8 pt-6 border-t border-app-border">
+            <TouchableOpacity
+              onPress={startWalkthrough}
+              className="items-center py-4 border-b border-app-border"
+            >
+              <Text className="text-app-accent font-semibold text-base">Restart Demo</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSignOut}
               className="items-center py-4"

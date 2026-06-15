@@ -5,14 +5,18 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Animated,
+  StyleSheet,
 } from "react-native";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "expo-router";
 import { Plus, Settings } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EstimateCard } from "@/components/dashboard/EstimateCard";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { supabase } from "@/lib/supabase";
+import { hasDemoBeenSeen } from "@/lib/demo";
+import { useDemoStore } from "@/stores/demoStore";
 import { useWizardStore } from "@/stores/wizardStore";
 import { tokens } from "@/styles";
 import type { SavedEstimate } from "@/types/estimate";
@@ -21,6 +25,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const resetWizard = useWizardStore((s) => s.reset);
+  const { showWelcome, setDemoEstimateId, phase, step } = useDemoStore();
   const [estimates, setEstimates] = useState<SavedEstimate[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,18 +39,44 @@ export default function DashboardScreen() {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    setEstimates((data as SavedEstimate[]) ?? []);
-  }, []);
+    const rows = (data as SavedEstimate[]) ?? [];
+    setEstimates(rows);
+    setDemoEstimateId(rows[0]?.id ?? null);
+  }, [setDemoEstimateId]);
 
   useEffect(() => {
-    fetchEstimates().finally(() => setLoading(false));
-  }, [fetchEstimates]);
+    const init = async () => {
+      await fetchEstimates();
+      setLoading(false);
+      const seen = await hasDemoBeenSeen();
+      if (!seen) showWelcome();
+    };
+    init();
+  }, [fetchEstimates, showWelcome]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchEstimates();
     setRefreshing(false);
   }, [fetchEstimates]);
+
+  const isDemoFab = phase === "walkthrough" && step === "dashboard";
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!isDemoFab) {
+      pulseAnim.setValue(0);
+      return;
+    }
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: false }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 800, useNativeDriver: false }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [isDemoFab]);
 
   const handleNewEstimate = () => {
     resetWizard();
@@ -73,7 +104,7 @@ export default function DashboardScreen() {
           <ActivityIndicator size="large" color={tokens.accent} />
         </View>
       ) : estimates.length === 0 ? (
-        <EmptyState />
+        <EmptyState onRunDemo={showWelcome} />
       ) : (
         <ScrollView
           className="flex-1"
@@ -96,14 +127,35 @@ export default function DashboardScreen() {
         className="absolute bottom-0 left-0 right-0 px-4 bg-transparent"
         style={{ paddingBottom: Math.max(insets.bottom + 8, 16) }}
       >
-        <TouchableOpacity
-          onPress={handleNewEstimate}
-          className="bg-app-accent rounded-2xl py-4 flex-row items-center justify-center gap-2 shadow-lg"
-          activeOpacity={0.85}
-        >
-          <Plus size={24} color={tokens.textInverse} />
-          <Text className="text-app-text-inverse font-bold text-lg">New Estimate</Text>
-        </TouchableOpacity>
+        <View style={{ position: "relative" }}>
+          {isDemoFab && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  borderRadius: 20,
+                  borderWidth: 3,
+                  borderColor: "white",
+                  opacity: pulseAnim,
+                  top: -3,
+                  left: -3,
+                  right: -3,
+                  bottom: -3,
+                  zIndex: 10,
+                },
+              ]}
+            />
+          )}
+          <TouchableOpacity
+            onPress={handleNewEstimate}
+            className="bg-app-accent rounded-2xl py-4 flex-row items-center justify-center gap-2 shadow-lg"
+            activeOpacity={0.85}
+          >
+            <Plus size={24} color={tokens.textInverse} />
+            <Text className="text-app-text-inverse font-bold text-lg">New Estimate</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

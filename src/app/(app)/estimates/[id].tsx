@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { getStatusColor, getStatusLabel, getEffectiveStatusKey } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { tokens } from "@/styles";
+import { useDemoStore } from "@/stores/demoStore";
 import type { SavedEstimate } from "@/types/estimate";
 
 export default function EstimateDetailScreen() {
@@ -25,6 +26,7 @@ export default function EstimateDetailScreen() {
   const [estimate, setEstimate] = useState<SavedEstimate | null>(null);
   const [loading, setLoading] = useState(true);
   const [missingQuestionsCount, setMissingQuestionsCount] = useState(0);
+  const { phase, step, setStep } = useDemoStore();
 
   useEffect(() => {
     if (!id) return;
@@ -144,14 +146,18 @@ export default function EstimateDetailScreen() {
                 setMissingQuestionsCount((data as SavedEstimate).missing_questions?.length ?? 0);
               }
             }}
-            onPricesConfirmedChange={(confirmed, confirmedAt) =>
+            onPricesConfirmedChange={(confirmed, confirmedAt) => {
               setEstimate(prev => prev ? {
                 ...prev,
                 prices_confirmed: confirmed,
                 prices_confirmed_at: confirmedAt ?? prev.prices_confirmed_at ?? null,
                 status: confirmed ? "ready" : prev.status,
-              } : null)
-            }
+              } : null);
+              if (confirmed && phase === "walkthrough" && step === "confirmPrices") {
+                setStep("preview");
+                router.push(`/(app)/estimates/${id}/preview`);
+              }
+            }}
             onMissingQuestionsChange={setMissingQuestionsCount}
           />
         </>

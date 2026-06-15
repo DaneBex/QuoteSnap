@@ -1,8 +1,12 @@
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { ClipboardList } from "lucide-react-native";
 import { tokens } from "@/styles";
 
-export function EmptyState() {
+interface EmptyStateProps {
+  onRunDemo?: () => void;
+}
+
+export function EmptyState({ onRunDemo }: EmptyStateProps) {
   return (
     <View className="flex-1 items-center justify-center px-8 py-16">
       <View className="w-20 h-20 bg-app-accent-light rounded-full items-center justify-center mb-5">
@@ -15,6 +19,13 @@ export function EmptyState() {
         Tap <Text className="font-semibold text-app-accent">New Estimate</Text> to
         turn your jobsite notes into a professional proposal.
       </Text>
+      {onRunDemo && (
+        <TouchableOpacity onPress={onRunDemo} className="mt-5">
+          <Text className="text-app-accent text-sm text-center">
+            New here? Run the 60-second demo.
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

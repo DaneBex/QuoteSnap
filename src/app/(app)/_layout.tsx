@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { View, ActivityIndicator } from "react-native";
 import { tokens } from "@/styles";
+import { OnboardingDemo } from "@/components/onboarding/OnboardingDemo";
 import type { Session } from "@supabase/supabase-js";
 
 export default function AppLayout() {
@@ -42,12 +43,15 @@ export default function AppLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="dashboard" />
-      <Stack.Screen name="settings" />
-      <Stack.Screen name="estimates/new" />
-      <Stack.Screen name="estimates/[id]" />
-      <Stack.Screen name="estimates/[id]/preview" />
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="dashboard" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="estimates/new" />
+        <Stack.Screen name="estimates/[id]" />
+        <Stack.Screen name="estimates/[id]/preview" />
+      </Stack>
+      <OnboardingDemo />
+    </View>
   );
 }

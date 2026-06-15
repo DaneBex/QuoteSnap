@@ -21,6 +21,7 @@ export function Step5Generating() {
     notes,
     photos,
     clarifyingAnswers,
+    generatedEstimate,
     isGenerating,
     generationError,
     setIsGenerating,
@@ -34,13 +35,15 @@ export function Step5Generating() {
     setGenerationError(null);
 
     try {
+      const isRevision = clarifyingAnswers.length > 0;
       const { data, error } = await supabase.functions.invoke("generate-estimate", {
         body: {
           jobType,
           customer,
           notes,
           photoDescriptions: photos.map((p) => p.description).filter(Boolean),
-          clarifyingAnswers: clarifyingAnswers.length > 0 ? clarifyingAnswers : undefined,
+          clarifyingAnswers: isRevision ? clarifyingAnswers : undefined,
+          currentEstimate: isRevision ? generatedEstimate : undefined,
         },
       });
 
