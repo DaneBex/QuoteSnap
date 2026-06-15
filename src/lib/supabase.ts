@@ -112,9 +112,11 @@ const debugFetch: typeof fetch = async (input, init) => {
         if (typeof v === "string") plainHeaders[k] = v;
       }
     }
-    // Always hand Chrome a true native Headers instance — plain objects can still
-    // be rejected if the polyfill stored values as arrays or non-string types.
-    safeInit.headers = new window.Headers(plainHeaders);
+    // Pass a plain Record<string, string> so both native fetch and the
+    // whatwg-fetch polyfill construct their own Headers internally — avoids
+    // the "Invalid value" error that occurs when a native Headers instance is
+    // handed to the polyfill's fetch (or vice-versa).
+    safeInit.headers = plainHeaders;
   }
 
   if (s) {
