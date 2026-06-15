@@ -48,40 +48,59 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
-// On web production builds, React Native polyfills AbortController with a JS
-// implementation whose .signal is not a native AbortSignal instance. Chrome's
-// native fetch throws "Failed to execute 'fetch' on 'Window': Invalid value"
-// when it receives a non-native AbortSignal. Restore native browser globals
-// before any Supabase calls are made.
+// On web production builds, whatwg-fetch (bundled via React Native) overrides
+// global.fetch, global.Headers, global.Request, and global.Response with JS
+// polyfills. Chrome's native window.fetch throws "Invalid value" when it
+// receives polyfilled Headers/Request instances. Restore native browser globals
+// before any Supabase calls so all subsequent new Headers()/new Request() calls
+// produce native instances.
 if (Platform.OS === "web" && typeof window !== "undefined") {
   const g = global as Record<string, unknown>;
-  if (window.AbortController && g["AbortController"] !== window.AbortController) {
-    console.warn("[supabase] replacing polyfilled AbortController with native browser implementation");
-    g["AbortController"] = window.AbortController;
-    g["AbortSignal"] = window.AbortSignal;
+  const toRestore = ["fetch", "Headers", "Request", "Response", "AbortController", "AbortSignal"] as const;
+  for (const name of toRestore) {
+    const win = window as Record<string, unknown>;
+    if (win[name] && g[name] !== win[name]) {
+      console.warn(`[supabase] restoring native window.${name} (was polyfilled)`);
+      g[name] = win[name];
+    }
   }
 }
 
 const debugFetch: typeof fetch = async (input, init) => {
   const urlStr = input instanceof Request ? input.url : String(input);
-  const signal = init?.signal;
+  const h = init?.headers;
+  const isNativeHeaders = typeof Headers !== "undefined" && h instanceof Headers;
   console.log("[supabase] fetch →", {
     url: urlStr,
     method: init?.method ?? "GET",
-    hasSignal: !!signal,
-    signalIsNative:
-      signal && typeof AbortSignal !== "undefined"
-        ? signal instanceof AbortSignal
+    headersType: Object.prototype.toString.call(h),
+    headersIsNative: h ? isNativeHeaders : "n/a",
+    globalHeadersIsWindowHeaders:
+      typeof Headers !== "undefined" && typeof window !== "undefined"
+        ? (Headers as unknown) === window.Headers
         : "n/a",
-    signalType: signal ? Object.prototype.toString.call(signal) : "none",
   });
+
+  // Safety net: if Headers was polyfilled before the global-restore above ran,
+  // some instances in init may still be non-native. Convert them to a plain object.
+  let patchedInit = init;
+  if (h && !isNativeHeaders) {
+    const plain: Record<string, string> = {};
+    if (typeof (h as any).forEach === "function") {
+      (h as any).forEach((v: string, k: string) => { plain[k] = v; });
+    } else {
+      Object.assign(plain, h);
+    }
+    console.warn("[supabase] fetch: normalized non-native Headers to plain object");
+    patchedInit = { ...init, headers: plain };
+  }
+
   try {
-    return await window.fetch(urlStr, init);
+    return await window.fetch(urlStr, patchedInit);
   } catch (err) {
     console.error("[supabase] fetch threw", {
       url: urlStr,
       errMessage: err instanceof Error ? err.message : String(err),
-      errName: err instanceof Error ? err.name : undefined,
     });
     throw err;
   }
