@@ -69,21 +69,27 @@ if (Platform.OS === "web" && typeof window !== "undefined") {
 const debugFetch: typeof fetch = async (input, init) => {
   const urlStr = input instanceof Request ? input.url : String(input);
   const h = init?.headers;
+  const s = init?.signal;
   const isNativeHeaders = typeof Headers !== "undefined" && h instanceof Headers;
+  const isNativeSignal = typeof AbortSignal !== "undefined" && s instanceof AbortSignal;
   console.log("[supabase] fetch →", {
     url: urlStr,
     method: init?.method ?? "GET",
-    headersType: Object.prototype.toString.call(h),
     headersIsNative: h ? isNativeHeaders : "n/a",
+    signalIsPresent: !!s,
+    signalIsNative: s ? isNativeSignal : "n/a",
     globalHeadersIsWindowHeaders:
       typeof Headers !== "undefined" && typeof window !== "undefined"
         ? (Headers as unknown) === window.Headers
         : "n/a",
   });
 
-  // Safety net: if Headers was polyfilled before the global-restore above ran,
-  // some instances in init may still be non-native. Convert them to a plain object.
+  // Supabase captures fetch globals (Headers, AbortController) in closures at module
+  // init time, before our global-restore runs. Those captured constructors may be
+  // polyfilled versions, producing non-native instances that Chrome's window.fetch
+  // rejects with "Invalid value". Sanitize every non-serializable field here.
   let patchedInit = init;
+
   if (h && !isNativeHeaders) {
     const plain: Record<string, string> = {};
     if (typeof (h as any).forEach === "function") {
@@ -92,7 +98,13 @@ const debugFetch: typeof fetch = async (input, init) => {
       Object.assign(plain, h);
     }
     console.warn("[supabase] fetch: normalized non-native Headers to plain object");
-    patchedInit = { ...init, headers: plain };
+    patchedInit = { ...patchedInit, headers: plain };
+  }
+
+  if (s && !isNativeSignal) {
+    console.warn("[supabase] fetch: stripped non-native AbortSignal");
+    const { signal: _dropped, ...rest } = patchedInit as RequestInit & { signal?: unknown };
+    patchedInit = rest as RequestInit;
   }
 
   try {
