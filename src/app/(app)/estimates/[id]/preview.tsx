@@ -42,8 +42,24 @@ export default function PreviewScreen() {
     el.id = "qs-preview-print";
     el.textContent = `
       @media print {
+        html, body {
+          height: auto !important;
+          overflow: visible !important;
+          background: white !important;
+        }
         #qs-app-header { display: none !important; }
-        body { background: white !important; }
+        #qs-preview-page,
+        #qs-preview-page > div {
+          height: auto !important;
+          overflow: visible !important;
+          flex: none !important;
+        }
+        #qs-estimate-scroll,
+        #qs-estimate-scroll > * {
+          height: auto !important;
+          overflow: visible !important;
+          flex: none !important;
+        }
       }
     `;
     document.head.appendChild(el);
@@ -53,6 +69,8 @@ export default function PreviewScreen() {
   useEffect(() => {
     if (!id) return;
     const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
       const [estimateRes, businessRes] = await Promise.all([
         supabase
           .from("estimates")
@@ -62,7 +80,9 @@ export default function PreviewScreen() {
         supabase
           .from("businesses")
           .select("name, phone, email, address, logo_url, license_number, default_terms")
-          .single(),
+          .eq("user_id", user?.id ?? "")
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       const estimateData = estimateRes.data as SavedEstimate;
@@ -121,7 +141,7 @@ export default function PreviewScreen() {
   };
 
   return (
-    <View className="flex-1 bg-app-surface" style={{ paddingTop: insets.top }}>
+    <View nativeID="qs-preview-page" className="flex-1 bg-app-surface" style={{ paddingTop: insets.top }}>
       <View nativeID="qs-app-header">
         <PageHeader
           title="Estimate Preview"

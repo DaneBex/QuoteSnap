@@ -49,7 +49,8 @@ create table public.businesses (
   license_number  text,
   default_terms   text,
   created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now()
+  updated_at      timestamptz not null default now(),
+  constraint businesses_user_id_key unique (user_id)
 );
 alter table public.businesses enable row level security;
 create policy "owner" on public.businesses

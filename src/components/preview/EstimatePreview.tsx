@@ -30,6 +30,10 @@ function cleanBulletText(text: string): string {
   return text.replace(/^[\s•\-\*]+/, "").trim();
 }
 
+function hasValue(value?: string | null): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function Divider() {
   return <View className="h-px bg-app-border my-5" />;
 }
@@ -85,7 +89,7 @@ export function EstimatePreview({
     review_pricing: "Draft pricing — contractor must confirm prices before sending.",
   };
 
-  const contactParts = [businessPhone, businessEmail].filter(Boolean);
+  const contactParts = ([businessPhone, businessEmail] as (string | undefined)[]).filter(hasValue);
 
   const scopeLines =
     estimate.scope_of_work
@@ -96,10 +100,11 @@ export function EstimatePreview({
   const customerPhotos = photos.filter((p) => p.signedUrl);
   const isWide = width > 600;
 
-  const hasBusinessInfo = businessName || businessPhone || businessEmail || businessAddress;
+  const hasBusinessInfo = hasValue(businessName) || hasValue(businessPhone) || hasValue(businessEmail) || hasValue(businessAddress);
 
   return (
     <ScrollView
+      nativeID="qs-estimate-scroll"
       className="flex-1 bg-stone-100"
       contentContainerStyle={{ padding: isWide ? 32 : 16, paddingBottom: 80 }}
     >
@@ -131,20 +136,22 @@ export function EstimatePreview({
                 />
               )}
               <View className="flex-1">
-                <Text className="text-xl font-bold text-app-text-primary">
-                  {businessName ?? ""}
-                </Text>
+                {hasValue(businessName) && (
+                  <Text className="text-xl font-bold text-app-text-primary">
+                    {businessName}
+                  </Text>
+                )}
                 {contactParts.length > 0 && (
                   <Text className="text-sm text-app-text-secondary mt-0.5">
                     {contactParts.join("  ·  ")}
                   </Text>
                 )}
-                {businessAddress && (
+                {hasValue(businessAddress) && (
                   <Text className="text-sm text-app-text-secondary mt-0.5">{businessAddress}</Text>
                 )}
-                {businessLicense && (
+                {hasValue(businessLicense) && (
                   <Text className="text-xs text-app-text-tertiary mt-1">
-                    License #{businessLicense}
+                    License: {businessLicense}
                   </Text>
                 )}
               </View>

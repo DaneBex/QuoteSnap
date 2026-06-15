@@ -45,7 +45,8 @@ export default function SettingsScreen() {
         .from("businesses")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (data) {
         setBusinessId(data.id);
@@ -78,9 +79,12 @@ export default function SettingsScreen() {
           .update({ ...form, updated_at: new Date().toISOString() })
           .eq("id", businessId);
       } else {
-        await supabase
+        const { data: newRow } = await supabase
           .from("businesses")
-          .insert({ ...form, user_id: user.id });
+          .insert({ ...form, user_id: user.id })
+          .select("id")
+          .single();
+        if (newRow) setBusinessId(newRow.id);
       }
       Alert.alert("Saved", "Your business profile has been updated.");
     } catch (err) {

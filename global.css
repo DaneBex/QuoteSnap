@@ -5,8 +5,26 @@
 @media print {
   #qs-app-header   { display: none !important; }
   #qs-print-button { display: none !important; }
-  body             { background: white !important; }
 
-  /* prevent page breaks inside key document blocks */
-  .print-no-break  { break-inside: avoid; page-break-inside: avoid; }
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  #qs-preview-page,
+  #qs-preview-page > div {
+    height: auto !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  #qs-estimate-scroll,
+  #qs-estimate-scroll > * {
+    height: auto !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  .print-no-break { break-inside: avoid; page-break-inside: avoid; }
 }
