@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
 
 interface StepIndicatorProps {
   total: number;
@@ -7,9 +7,12 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ total, current, labels }: StepIndicatorProps) {
+  const { height } = useWindowDimensions();
+  const compact = height <= 700;
+
   return (
-    <View className="px-4 py-3 bg-app-surface border-b border-app-border">
-      <View className="flex-row items-center gap-1.5 mb-1.5">
+    <View className={`px-4 ${compact ? "py-1.5" : "py-3"} bg-app-surface border-b border-app-border`}>
+      <View className={`flex-row items-center gap-1.5 ${compact ? "" : "mb-1.5"}`}>
         {Array.from({ length: total }).map((_, i) => (
           <View
             key={i}
@@ -19,7 +22,7 @@ export function StepIndicator({ total, current, labels }: StepIndicatorProps) {
           />
         ))}
       </View>
-      {labels && (
+      {!compact && labels && (
         <Text className="text-xs text-app-text-secondary">
           Step {current} of {total}
           {labels[current - 1] ? ` — ${labels[current - 1]}` : ""}
