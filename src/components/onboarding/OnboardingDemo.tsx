@@ -186,10 +186,15 @@ export function OnboardingDemo() {
   // Compact strip for steps where full-height content fills the screen below
   const isCompactStep = step === "reviewDraft" || step === "answerQuestions";
 
+  // Wizard form steps have a BottomCTA Continue button — anchor from top so the button is never covered
+  const isWizardFormStep = step === "newEstimate" || step === "customerInfo" || step === "photosNotes";
+
   const cardPositionStyle = step === "dashboard"
     ? { top: insets.top + 80, left: 16, right: 16 }
     : isCompactStep
     ? { top: insets.top, left: 16, right: 16 }
+    : isWizardFormStep
+    ? { top: insets.top + 60, left: 16, right: 16 }
     : { bottom: Math.max(insets.bottom + 12, 20), left: 16, right: 16 };
 
   // ── Compact card layout (no body text, same card shape) ───────────────────
