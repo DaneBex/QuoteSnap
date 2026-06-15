@@ -97,19 +97,24 @@ const debugFetch: typeof fetch = async (input, init) => {
   if (init?.keepalive !== undefined)  safeInit.keepalive      = init.keepalive;
   if (init?.body !== undefined)       safeInit.body           = init.body as BodyInit;
 
+  // Extract headers into a plain string-string record first
+  const plainHeaders: Record<string, string> = {};
   if (h) {
-    if (isNativeHeaders) {
-      safeInit.headers = h;
+    if (typeof (h as any).forEach === "function") {
+      // Native Headers or whatwg-fetch polyfill both have forEach(value, name)
+      (h as any).forEach((v: unknown, k: unknown) => {
+        if (typeof k === "string" && typeof v === "string") plainHeaders[k] = v;
+      });
+    } else if (Array.isArray(h)) {
+      (h as [string, string][]).forEach(([k, v]) => { plainHeaders[k] = v; });
     } else {
-      const plain: Record<string, string> = {};
-      if (typeof (h as any).forEach === "function") {
-        (h as any).forEach((v: string, k: string) => { plain[k] = v; });
-      } else {
-        Object.assign(plain, h);
+      for (const [k, v] of Object.entries(h as Record<string, unknown>)) {
+        if (typeof v === "string") plainHeaders[k] = v;
       }
-      console.warn("[supabase] fetch: normalized non-native Headers to plain object");
-      safeInit.headers = plain;
     }
+    // Always hand Chrome a true native Headers instance — plain objects can still
+    // be rejected if the polyfill stored values as arrays or non-string types.
+    safeInit.headers = new window.Headers(plainHeaders);
   }
 
   if (s) {
@@ -127,6 +132,10 @@ const debugFetch: typeof fetch = async (input, init) => {
       url: urlStr,
       errMessage: err instanceof Error ? err.message : String(err),
       safeInitKeys: Object.keys(safeInit),
+      plainHeaders: JSON.stringify(plainHeaders),
+      windowFetchIsNative: typeof window !== "undefined"
+        ? window.fetch?.toString?.().includes("[native code]")
+        : null,
     });
     throw err;
   }
