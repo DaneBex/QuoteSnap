@@ -15,8 +15,10 @@ export default function AuthCallback() {
 
       const errorCode = searchParams.get("error_code") ?? hashParams.get("error");
       if (errorCode) {
-        setError("This link has expired. Please request a new one.");
-        setTimeout(() => router.replace("/(auth)/login"), 3000);
+        const errorDescription = searchParams.get("error_description") ?? hashParams.get("error_description") ?? "";
+        console.error("[auth/callback] OAuth error:", { errorCode, errorDescription, fullUrl: window.location.href });
+        setError(`Auth error: ${errorCode}${errorDescription ? ` — ${errorDescription}` : ""}`);
+        setTimeout(() => router.replace("/(auth)/login"), 5000);
         return;
       }
 
@@ -27,8 +29,9 @@ export default function AuthCallback() {
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
-          setError("Sign-in failed. Please try again.");
-          setTimeout(() => router.replace("/(auth)/login"), 3000);
+          console.error("[auth/callback] exchangeCodeForSession error:", error);
+          setError(`Sign-in failed: ${error.message}`);
+          setTimeout(() => router.replace("/(auth)/login"), 5000);
           return;
         }
       } else if (accessToken && refreshToken) {
