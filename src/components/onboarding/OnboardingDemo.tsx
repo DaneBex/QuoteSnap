@@ -97,6 +97,10 @@ export function OnboardingDemo() {
   const { phase, step, startWalkthrough, setStep, close } = useDemoStore();
   const wizardStep = useWizardStore((s) => s.currentStep);
   const generatedEstimate = useWizardStore((s) => s.generatedEstimate);
+  const jobType = useWizardStore((s) => s.jobType);
+  const customerName = useWizardStore((s) => s.customer.name);
+  const photos = useWizardStore((s) => s.photos);
+  const notes = useWizardStore((s) => s.notes);
 
   // ── Auto-advance: route changes ────────────────────────────────────────────
   useEffect(() => {
@@ -186,15 +190,21 @@ export function OnboardingDemo() {
   // Compact strip for steps where full-height content fills the screen below
   const isCompactStep = step === "reviewDraft" || step === "answerQuestions";
 
-  // Wizard form steps have a BottomCTA Continue button — anchor from top so the button is never covered
+  // Wizard form steps: card starts low, moves to top once the user has interacted
+  // (which is also when the Continue button becomes enabled — so moving up reveals it)
   const isWizardFormStep = step === "newEstimate" || step === "customerInfo" || step === "photosNotes";
+  const isInteracted =
+    (step === "newEstimate"  && jobType !== "") ||
+    (step === "customerInfo" && customerName !== "") ||
+    (step === "photosNotes"  && (photos.length > 0 || notes !== ""));
 
-  const cardPositionStyle = step === "dashboard"
-    ? { top: insets.top + 80, left: 16, right: 16 }
+  const cardPositionStyle =
+    step === "dashboard"
+      ? { top: insets.top + 80, left: 16, right: 16 }
     : isCompactStep
-    ? { top: insets.top, left: 16, right: 16 }
-    : isWizardFormStep
-    ? { top: insets.top + 60, left: 16, right: 16 }
+      ? { top: insets.top, left: 16, right: 16 }
+    : (isWizardFormStep && isInteracted)
+      ? { top: insets.top + 60, left: 16, right: 16 }
     : { bottom: Math.max(insets.bottom + 12, 20), left: 16, right: 16 };
 
   // ── Compact card layout (no body text, same card shape) ───────────────────
