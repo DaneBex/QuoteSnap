@@ -5,15 +5,18 @@ import { TouchableOpacity } from "react-native";
 import { X } from "lucide-react-native";
 import { WizardShell } from "@/components/estimate-wizard/WizardShell";
 import { useWizardStore } from "@/stores/wizardStore";
+import { useDemoStore } from "@/stores/demoStore";
 import { tokens } from "@/styles";
 
 export default function NewEstimateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const reset = useWizardStore((s) => s.reset);
+  const { phase, close: closeDemo } = useDemoStore();
 
   const handleClose = () => {
     reset();
+    if (phase !== "idle") closeDemo();
     if (router.canGoBack()) {
       router.back();
     } else {

@@ -14,6 +14,7 @@ import { markDemoSeen } from "@/lib/demo";
 const STEP_ORDER: WalkthroughStep[] = [
   "dashboard",
   "newEstimate",
+  "customerInfo",
   "photosNotes",
   "aiDraft",
   "reviewDraft",
@@ -38,6 +39,11 @@ const STEP_CONTENT: Record<
     body: "Start by selecting what kind of job this is.",
     action: "Select a job type to continue",
   },
+  customerInfo: {
+    title: "Customer Info",
+    body: "Add your customer's name, address, and contact details. Only the name is required.",
+    action: "Fill in the details, then tap Continue",
+  },
   photosNotes: {
     title: "Add Photos & Notes",
     body: "Add jobsite photos and rough notes — QuoteSnap turns them into a professional estimate.",
@@ -54,8 +60,8 @@ const STEP_CONTENT: Record<
   },
   answerQuestions: {
     title: "Answer Follow-Up Questions",
-    body: "These details let the AI price the job accurately. Fill in your answers and tap Regenerate to get a complete estimate.",
-    action: "Fill in answers, then tap Regenerate",
+    body: "These details let the AI price the job accurately. Fill in your answers and tap Update Estimate to get a complete estimate.",
+    action: "Fill in answers, then tap Update Estimate",
   },
   editor: {
     title: "Review Your Draft",
@@ -90,6 +96,7 @@ export function OnboardingDemo() {
   const insets = useSafeAreaInsets();
   const { phase, step, startWalkthrough, setStep, close } = useDemoStore();
   const wizardStep = useWizardStore((s) => s.currentStep);
+  const generatedEstimate = useWizardStore((s) => s.generatedEstimate);
 
   // ── Auto-advance: route changes ────────────────────────────────────────────
   useEffect(() => {
@@ -109,6 +116,7 @@ export function OnboardingDemo() {
   useEffect(() => {
     if (phase !== "walkthrough" || !pathname.includes("/estimates/new")) return;
     const curr = stepIndex(step);
+    if (wizardStep >= 2 && curr < stepIndex("customerInfo")) setStep("customerInfo");
     if (wizardStep >= 3 && curr < stepIndex("photosNotes")) setStep("photosNotes");
     if (wizardStep >= 5 && curr < stepIndex("aiDraft")) setStep("aiDraft");
     if (wizardStep >= 6 && curr < stepIndex("reviewDraft")) setStep("reviewDraft");
@@ -117,23 +125,6 @@ export function OnboardingDemo() {
     if (wizardStep === 5 && step === "answerQuestions") setStep("aiDraft");
   }, [wizardStep, phase, pathname]);
 
-  // ── Auto-advance: time-based within same route ─────────────────────────────
-  useEffect(() => {
-    if (phase !== "walkthrough") return;
-    if (
-      step === "editor" &&
-      /\/estimates\/[^/]+/.test(pathname) &&
-      !pathname.includes("/preview") &&
-      !pathname.includes("/new")
-    ) {
-      const t = setTimeout(() => setStep("confirmPrices"), 6000);
-      return () => clearTimeout(t);
-    }
-    if (step === "preview" && /\/estimates\/[^/]+\/preview/.test(pathname)) {
-      const t = setTimeout(() => setStep("finish"), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [step, phase, pathname]);
 
   if (phase === "idle") return null;
 
@@ -187,7 +178,10 @@ export function OnboardingDemo() {
 
   const idx = stepIndex(step);
   const isLast = step === "finish";
-  const content = STEP_CONTENT[step];
+  const hasQuestions = (generatedEstimate?.missingQuestions?.length ?? 0) > 0;
+  const content = step === "reviewDraft" && !hasQuestions
+    ? { ...STEP_CONTENT.reviewDraft, action: "Save the draft" }
+    : STEP_CONTENT[step];
 
   // Compact strip for steps where full-height content fills the screen below
   const isCompactStep = step === "reviewDraft" || step === "answerQuestions";
@@ -307,6 +301,18 @@ export function OnboardingDemo() {
                 {content.action}
               </Text>
             </View>
+          )}
+
+          {/* Review steps get a manual advance button */}
+          {step === "editor" && (
+            <Button onPress={() => setStep("confirmPrices")} size="md" className="mt-4 w-full">
+              I've reviewed
+            </Button>
+          )}
+          {step === "preview" && (
+            <Button onPress={() => setStep("finish")} size="md" className="mt-4 w-full">
+              I've reviewed
+            </Button>
           )}
 
           {/* Only the final step has a button */}

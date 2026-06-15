@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import { BottomCTA } from "@/components/layout/BottomCTA";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "expo-router";
 import { useDemoStore } from "@/stores/demoStore";
 import { tokens } from "@/styles";
 
@@ -58,6 +59,7 @@ function Field({
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { startWalkthrough } = useDemoStore();
   const [form, setForm] = useState<BusinessForm>({
     name: "",
@@ -168,7 +170,7 @@ export default function SettingsScreen() {
 
           <View className="mt-8 pt-6 border-t border-app-border">
             <TouchableOpacity
-              onPress={startWalkthrough}
+              onPress={() => { startWalkthrough(); router.push("/(app)/dashboard"); }}
               className="items-center py-4 border-b border-app-border"
             >
               <Text className="text-app-accent font-semibold text-base">Restart Demo</Text>

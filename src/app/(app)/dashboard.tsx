@@ -94,6 +94,7 @@ export default function DashboardScreen() {
         <TouchableOpacity
           onPress={() => router.push("/(app)/settings")}
           className="w-10 h-10 items-center justify-center"
+          disabled={isDemoFab}
         >
           <Settings size={24} color={tokens.textSecondary} />
         </TouchableOpacity>
@@ -116,9 +117,11 @@ export default function DashboardScreen() {
           <Text className="text-sm font-semibold text-app-text-tertiary uppercase tracking-wide mb-3">
             Recent
           </Text>
-          {estimates.map((estimate) => (
-            <EstimateCard key={estimate.id} estimate={estimate} />
-          ))}
+          <View pointerEvents={isDemoFab ? "none" : "auto"}>
+            {estimates.map((estimate) => (
+              <EstimateCard key={estimate.id} estimate={estimate} />
+            ))}
+          </View>
         </ScrollView>
       )}
 
