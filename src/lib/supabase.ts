@@ -11,6 +11,14 @@ if (Platform.OS !== "web") {
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
+console.log("[supabase] init", {
+  urlDefined: !!supabaseUrl,
+  urlPrefix: supabaseUrl?.slice(0, 30) ?? "MISSING",
+  keyDefined: !!supabaseAnonKey,
+  keyPrefix: supabaseAnonKey?.slice(0, 10) ?? "MISSING",
+  platform: Platform.OS,
+});
+
 // Use SecureStore on native, localStorage on web
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {

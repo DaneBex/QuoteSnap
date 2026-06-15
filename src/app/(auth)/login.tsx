@@ -25,18 +25,35 @@ export default function LoginScreen() {
 
   const nativeRedirectTo = makeRedirectUri({ scheme: "quotesnap", path: "auth/callback" });
 
+  function logAuthError(label: string, err: unknown) {
+    console.error(`[login] ${label} error`, {
+      type: err instanceof Error ? err.constructor.name : typeof err,
+      message: err instanceof Error ? err.message : String(err),
+      cause: err instanceof Error ? err.cause : undefined,
+      status: (err as any)?.status,
+      code: (err as any)?.code,
+      name: err instanceof Error ? err.name : undefined,
+      stack: err instanceof Error ? err.stack : undefined,
+      raw: err,
+    });
+  }
+
   const handleGoogle = async () => {
     setLoadingGoogle(true);
     try {
       if (Platform.OS === "web") {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const redirectTo = `${window.location.origin}/auth/callback`;
+        console.log("[login] Google OAuth (web)", { redirectTo, origin: window.location.origin });
+        const { data, error } = await supabase.auth.signInWithOAuth({
           provider: "google",
-          options: { redirectTo: `${window.location.origin}/auth/callback` },
+          options: { redirectTo },
         });
+        console.log("[login] signInWithOAuth result", { url: data?.url, hasError: !!error });
         if (error) throw error;
         return; // browser redirects away
       }
 
+      console.log("[login] Google OAuth (native)", { nativeRedirectTo });
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: nativeRedirectTo, skipBrowserRedirect: true },
@@ -53,6 +70,7 @@ export default function LoginScreen() {
         }
       }
     } catch (err) {
+      logAuthError("Google", err);
       Alert.alert("Sign-in failed", err instanceof Error ? err.message : "Try again.");
     } finally {
       setLoadingGoogle(false);
@@ -69,13 +87,18 @@ export default function LoginScreen() {
       const magicLinkRedirect = Platform.OS === "web"
         ? `${window.location.origin}/auth/callback`
         : nativeRedirectTo;
+      console.log("[login] Magic link", { magicLinkRedirect, email: email.trim(), platform: Platform.OS });
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: { emailRedirectTo: magicLinkRedirect },
       });
-      if (error) throw error;
+      if (error) {
+        logAuthError("Magic link", error);
+        throw error;
+      }
       setMagicLinkSent(true);
     } catch (err) {
+      if (!(err as any)?.__logged) logAuthError("Magic link (catch)", err);
       Alert.alert("Failed", err instanceof Error ? err.message : "Try again.");
     } finally {
       setLoadingMagic(false);
