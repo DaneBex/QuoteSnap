@@ -1,7 +1,12 @@
-import "react-native-url-polyfill/auto";
 import { createClient } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+
+// URL polyfill is only needed on native (Hermes lacks URL/URLSearchParams).
+// Importing it on web overrides the browser's native URL and breaks fetch.
+if (Platform.OS !== "web") {
+  require("react-native-url-polyfill/auto");
+}
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
