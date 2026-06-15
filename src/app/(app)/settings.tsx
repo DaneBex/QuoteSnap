@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +21,37 @@ interface BusinessForm {
   email: string;
   address: string;
   license_number: string;
+}
+
+function Field({
+  label,
+  field,
+  placeholder,
+  keyboardType,
+  form,
+  setForm,
+}: {
+  label: string;
+  field: keyof BusinessForm;
+  placeholder?: string;
+  keyboardType?: "default" | "phone-pad" | "email-address";
+  form: BusinessForm;
+  setForm: React.Dispatch<React.SetStateAction<BusinessForm>>;
+}) {
+  return (
+    <View className="mb-4">
+      <Text className="text-sm font-medium text-app-text-secondary mb-1.5">{label}</Text>
+      <TextInput
+        value={form[field]}
+        onChangeText={(v) => setForm((f) => ({ ...f, [field]: v }))}
+        placeholder={placeholder}
+        placeholderTextColor={tokens.textTertiary}
+        keyboardType={keyboardType ?? "default"}
+        autoCapitalize={keyboardType === "email-address" ? "none" : "words"}
+        className="bg-app-surface border border-app-border rounded-xl px-4 py-3.5 text-base text-app-text-primary"
+      />
+    </View>
+  );
 }
 
 export default function SettingsScreen() {
@@ -98,31 +129,6 @@ export default function SettingsScreen() {
     await supabase.auth.signOut();
   };
 
-  const Field = ({
-    label,
-    field,
-    placeholder,
-    keyboardType,
-  }: {
-    label: string;
-    field: keyof BusinessForm;
-    placeholder?: string;
-    keyboardType?: "default" | "phone-pad" | "email-address";
-  }) => (
-    <View className="mb-4">
-      <Text className="text-sm font-medium text-app-text-secondary mb-1.5">{label}</Text>
-      <TextInput
-        value={form[field]}
-        onChangeText={(v) => setForm((f) => ({ ...f, [field]: v }))}
-        placeholder={placeholder}
-        placeholderTextColor={tokens.textTertiary}
-        keyboardType={keyboardType ?? "default"}
-        autoCapitalize={keyboardType === "email-address" ? "none" : "words"}
-        className="bg-app-surface border border-app-border rounded-xl px-4 py-3.5 text-base text-app-text-primary"
-      />
-    </View>
-  );
-
   return (
     <View className="flex-1 bg-app-background" style={{ paddingTop: insets.top }}>
       <PageHeader title="Business Settings" showBack />
@@ -141,11 +147,11 @@ export default function SettingsScreen() {
             Business Profile
           </Text>
 
-          <Field label="Business Name *" field="name" placeholder="Smith Contracting" />
-          <Field label="Phone" field="phone" placeholder="(555) 000-0000" keyboardType="phone-pad" />
-          <Field label="Email" field="email" placeholder="you@business.com" keyboardType="email-address" />
-          <Field label="Address" field="address" placeholder="123 Main St, City, TX" />
-          <Field label="License Number" field="license_number" placeholder="TX-123456" />
+          <Field label="Business Name *" field="name" placeholder="Smith Contracting" form={form} setForm={setForm} />
+          <Field label="Phone" field="phone" placeholder="(555) 000-0000" keyboardType="phone-pad" form={form} setForm={setForm} />
+          <Field label="Email" field="email" placeholder="you@business.com" keyboardType="email-address" form={form} setForm={setForm} />
+          <Field label="Address" field="address" placeholder="123 Main St, City, TX" form={form} setForm={setForm} />
+          <Field label="License Number" field="license_number" placeholder="TX-123456" form={form} setForm={setForm} />
 
           <View className="mt-8 pt-6 border-t border-app-border">
             <TouchableOpacity
