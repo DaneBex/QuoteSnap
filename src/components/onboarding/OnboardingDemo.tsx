@@ -97,6 +97,10 @@ export function OnboardingDemo() {
   const { phase, step, startWalkthrough, setStep, close } = useDemoStore();
   const wizardStep = useWizardStore((s) => s.currentStep);
   const generatedEstimate = useWizardStore((s) => s.generatedEstimate);
+  const jobType = useWizardStore((s) => s.jobType);
+  const customerName = useWizardStore((s) => s.customer.name);
+  const photos = useWizardStore((s) => s.photos);
+  const notes = useWizardStore((s) => s.notes);
   const { height } = useWindowDimensions();
   const isSmallScreen = height <= 700;
 
@@ -186,16 +190,21 @@ export function OnboardingDemo() {
     : STEP_CONTENT[step];
 
   const isWizardFormStep = step === "newEstimate" || step === "customerInfo" || step === "photosNotes";
+  const isInteracted =
+    (step === "newEstimate"  && jobType !== "") ||
+    (step === "customerInfo" && customerName !== "") ||
+    (step === "photosNotes"  && (photos.length > 0 || notes !== ""));
 
-  // Compact strip: full-screen content steps + wizard form steps on small phones
-  const isCompactStep = step === "reviewDraft" || step === "answerQuestions" || (isSmallScreen && isWizardFormStep);
+  // Compact strip: full-screen content steps + customerInfo/photosNotes on small phones
+  const isCompactStep = step === "reviewDraft" || step === "answerQuestions" ||
+    (isSmallScreen && (step === "customerInfo" || step === "photosNotes"));
 
   const cardPositionStyle =
     step === "dashboard"
       ? { top: insets.top + 80, left: 16, right: 16 }
     : isCompactStep
       ? { top: insets.top, left: 16, right: 16 }
-    : isWizardFormStep
+    : (isWizardFormStep && isInteracted)
       ? { top: insets.top + 60, left: 16, right: 16 }
     : { bottom: Math.max(insets.bottom + 12, 20), left: 16, right: 16 };
 
