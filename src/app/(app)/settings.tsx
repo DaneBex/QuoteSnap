@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { Toast } from "@/components/ui/Toast";
 import { BottomCTA } from "@/components/layout/BottomCTA";
 import { supabase } from "@/lib/supabase";
 import { tokens } from "@/styles";
@@ -66,6 +67,11 @@ export default function SettingsScreen() {
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<"success" | "error" | null>(null);
+  const [saveErrorMsg, setSaveErrorMsg] = useState("");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaveResultRef = useRef<"success" | "error">("success");
+  if (saveResult !== null) lastSaveResultRef.current = saveResult;
 
   useEffect(() => {
     const load = async () => {
@@ -99,6 +105,8 @@ export default function SettingsScreen() {
       Alert.alert("Business name is required");
       return;
     }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSaveResult(null);
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -117,9 +125,12 @@ export default function SettingsScreen() {
           .single();
         if (newRow) setBusinessId(newRow.id);
       }
-      Alert.alert("Saved", "Your business profile has been updated.");
+      setSaveResult("success");
+      saveTimerRef.current = setTimeout(() => setSaveResult(null), 2000);
     } catch (err) {
-      Alert.alert("Error", err instanceof Error ? err.message : "Try again.");
+      const msg = err instanceof Error ? err.message : "Try again.";
+      setSaveResult("error");
+      setSaveErrorMsg(msg);
     } finally {
       setSaving(false);
     }
@@ -165,8 +176,17 @@ export default function SettingsScreen() {
       )}
 
       <BottomCTA>
+        <Toast
+          visible={saveResult !== null}
+          type={lastSaveResultRef.current}
+          message={
+            lastSaveResultRef.current === "success"
+              ? "Profile saved"
+              : saveErrorMsg || "Could not save profile. Please try again."
+          }
+        />
         <Button onPress={handleSave} loading={saving} size="lg" className="w-full">
-          Save Profile
+          {saving ? "Saving..." : "Save Profile"}
         </Button>
       </BottomCTA>
     </View>

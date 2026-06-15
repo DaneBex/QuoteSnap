@@ -17,6 +17,7 @@ import * as Clipboard from "expo-clipboard";
 import { BottomCTA } from "@/components/layout/BottomCTA";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Toast } from "@/components/ui/Toast";
 import { LineItemsTable } from "./LineItemsTable";
 import { JobPhotosSection } from "./JobPhotosSection";
 import { supabase } from "@/lib/supabase";
@@ -357,6 +358,11 @@ export function EstimateEditor({
   onMissingQuestionsChange,
 }: EstimateEditorProps) {
   const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<"success" | "error" | null>(null);
+  const [saveErrorMsg, setSaveErrorMsg] = useState("");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaveResultRef = useRef<"success" | "error">("success");
+  if (saveResult !== null) lastSaveResultRef.current = saveResult;
   const [regenerating, setRegenerating] = useState(false);
   const [summaryHeight, setSummaryHeight] = useState(80);
   const [scopeHeight, setScopeHeight] = useState(120);
@@ -602,6 +608,8 @@ export function EstimateEditor({
   };
 
   const onSubmit = async (data: EstimatePayload) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSaveResult(null);
     setSaving(true);
     try {
       const subtotal = data.lineItems.reduce(
@@ -641,9 +649,12 @@ export function EstimateEditor({
 
       if (error) throw error;
       onSaved?.(newStatus);
+      setSaveResult("success");
+      saveTimerRef.current = setTimeout(() => setSaveResult(null), 2000);
     } catch (err) {
       const msg = (err as { message?: string })?.message ?? "Try again.";
-      Alert.alert("Save failed", msg);
+      setSaveResult("error");
+      setSaveErrorMsg(msg);
     } finally {
       setSaving(false);
     }
@@ -785,13 +796,22 @@ export function EstimateEditor({
         </View>
 
         <BottomCTA>
+          <Toast
+            visible={saveResult !== null}
+            type={lastSaveResultRef.current}
+            message={
+              lastSaveResultRef.current === "success"
+                ? "Changes saved"
+                : saveErrorMsg || "Could not save changes. Please try again."
+            }
+          />
           <Button
             onPress={handleSubmit(onSubmit)}
             loading={saving}
             size="lg"
             className="w-full"
           >
-            Save Changes
+            {saving ? "Saving..." : "Save Changes"}
           </Button>
         </BottomCTA>
       </ScrollView>

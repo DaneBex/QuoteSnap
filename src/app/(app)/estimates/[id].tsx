@@ -16,7 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { getStatusColor, getStatusLabel, getEffectiveStatusKey } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { tokens } from "@/styles";
-import type { EstimateStatus, SavedEstimate } from "@/types/estimate";
+import type { SavedEstimate } from "@/types/estimate";
 
 export default function EstimateDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,8 +24,6 @@ export default function EstimateDetailScreen() {
   const insets = useSafeAreaInsets();
   const [estimate, setEstimate] = useState<SavedEstimate | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState(false);
-  const [savedStatus, setSavedStatus] = useState<EstimateStatus | null>(null);
   const [missingQuestionsCount, setMissingQuestionsCount] = useState(0);
 
   useEffect(() => {
@@ -114,27 +112,6 @@ export default function EstimateDetailScreen() {
         </View>
       ) : estimate ? (
         <>
-          {saved && savedStatus && (
-            <View
-              className={
-                savedStatus === "ready"
-                  ? "bg-green-50 border-b border-green-100 px-4 py-2"
-                  : "bg-amber-50 border-b border-amber-100 px-4 py-2"
-              }
-            >
-              <Text
-                className={
-                  savedStatus === "ready"
-                    ? "text-green-700 font-medium text-sm text-center"
-                    : "text-amber-700 font-medium text-sm text-center"
-                }
-              >
-                {savedStatus === "ready"
-                  ? `✓ Saved — ${getStatusLabel(savedStatus)}`
-                  : `✓ Saved — ${getStatusLabel(savedStatus)}: add unit prices to finalize`}
-              </Text>
-            </View>
-          )}
           <EstimateEditor
             estimateId={estimate.id}
             pricesConfirmed={estimate.prices_confirmed}
@@ -156,9 +133,7 @@ export default function EstimateDetailScreen() {
             }}
             customer={estimate.jobs?.customers}
             job={estimate.jobs}
-            onSaved={async (status) => {
-              setSaved(true);
-              setSavedStatus(status ?? null);
+            onSaved={async () => {
               const { data } = await supabase
                 .from("estimates")
                 .select("*, jobs(id, job_type, notes, customers(id, name, phone, email, address))")
@@ -168,7 +143,6 @@ export default function EstimateDetailScreen() {
                 setEstimate(data as SavedEstimate);
                 setMissingQuestionsCount((data as SavedEstimate).missing_questions?.length ?? 0);
               }
-              setTimeout(() => setSaved(false), 4000);
             }}
             onPricesConfirmedChange={(confirmed, confirmedAt) =>
               setEstimate(prev => prev ? {
