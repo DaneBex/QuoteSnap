@@ -1,12 +1,15 @@
-import { View, Text, useWindowDimensions } from "react-native";
+import { View, Text, TouchableOpacity, useWindowDimensions } from "react-native";
+import { ChevronLeft } from "lucide-react-native";
+import { tokens } from "@/styles";
 
 interface StepIndicatorProps {
   total: number;
   current: number;
   labels?: string[];
+  onBack?: () => void;
 }
 
-export function StepIndicator({ total, current, labels }: StepIndicatorProps) {
+export function StepIndicator({ total, current, labels, onBack }: StepIndicatorProps) {
   const { height } = useWindowDimensions();
   const compact = height <= 700;
 
@@ -23,10 +26,21 @@ export function StepIndicator({ total, current, labels }: StepIndicatorProps) {
         ))}
       </View>
       {!compact && labels && (
-        <Text className="text-xs text-app-text-secondary">
-          Step {current} of {total}
-          {labels[current - 1] ? ` — ${labels[current - 1]}` : ""}
-        </Text>
+        <View className="flex-row items-center">
+          {onBack && (
+            <TouchableOpacity
+              onPress={onBack}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="mr-1.5"
+            >
+              <ChevronLeft size={14} color={tokens.textSecondary} />
+            </TouchableOpacity>
+          )}
+          <Text className="text-xs text-app-text-secondary">
+            Step {current} of {total}
+            {labels[current - 1] ? ` — ${labels[current - 1]}` : ""}
+          </Text>
+        </View>
       )}
     </View>
   );

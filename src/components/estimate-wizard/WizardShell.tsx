@@ -20,6 +20,18 @@ const STEP_LABELS = [
 
 export function WizardShell() {
   const currentStep = useWizardStore((s) => s.currentStep);
+  const isGenerating = useWizardStore((s) => s.isGenerating);
+  const setStep = useWizardStore((s) => s.setStep);
+
+  const showBack = currentStep >= 2 && currentStep <= 6 && !(currentStep === 5 && isGenerating);
+
+  const handleBack = () => {
+    if (currentStep === 6 || currentStep === 5) {
+      setStep(4);
+    } else {
+      setStep(currentStep - 1);
+    }
+  };
 
   return (
     <View className="flex-1 bg-app-background">
@@ -28,6 +40,7 @@ export function WizardShell() {
           total={STEP_LABELS.length}
           current={currentStep}
           labels={STEP_LABELS}
+          onBack={showBack ? handleBack : undefined}
         />
       )}
       {currentStep === 1 && <Step1JobType />}
