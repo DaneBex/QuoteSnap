@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/Input";
 import { BottomCTA } from "@/components/layout/BottomCTA";
 import { Button } from "@/components/ui/Button";
 import { useWizardStore, type WizardCustomer } from "@/stores/wizardStore";
+import { useDemoStore } from "@/stores/demoStore";
 
 export function Step2Customer() {
   const { customer, setCustomer, setStep } = useWizardStore();
+  const isDemoActive = useDemoStore((s) => s.phase === "walkthrough");
 
   const {
     control,
@@ -22,7 +24,7 @@ export function Step2Customer() {
   return (
     <ScrollView
       className="flex-1"
-      contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 120, ...(isDemoActive ? { flexGrow: 1, justifyContent: "flex-end" } : {}) }}
       keyboardShouldPersistTaps="handled"
     >
       <Text className="text-2xl font-bold text-app-text-primary mb-1">Customer info</Text>

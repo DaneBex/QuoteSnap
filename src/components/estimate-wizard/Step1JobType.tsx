@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { BottomCTA } from "@/components/layout/BottomCTA";
 import { Button } from "@/components/ui/Button";
 import { useWizardStore } from "@/stores/wizardStore";
+import { useDemoStore } from "@/stores/demoStore";
 import { cn } from "@/lib/utils";
 
 const JOB_TYPES = [
@@ -20,6 +21,7 @@ const JOB_TYPES = [
 
 export function Step1JobType() {
   const { jobType, setJobType, setStep } = useWizardStore();
+  const isDemoActive = useDemoStore((s) => s.phase === "walkthrough");
   const [customType, setCustomType] = useState(
     JOB_TYPES.some((t) => t.label === jobType) ? "" : jobType
   );
@@ -45,7 +47,7 @@ export function Step1JobType() {
   return (
     <ScrollView
       className="flex-1"
-      contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 100, ...(isDemoActive ? { flexGrow: 1, justifyContent: "flex-end" } : {}) }}
       keyboardShouldPersistTaps="handled"
     >
       <Text className="text-2xl font-bold text-app-text-primary mb-1">What's the job?</Text>
