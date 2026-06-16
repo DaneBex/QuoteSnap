@@ -102,7 +102,7 @@ export function OnboardingDemo() {
   const photos = useWizardStore((s) => s.photos);
   const notes = useWizardStore((s) => s.notes);
   const { height } = useWindowDimensions();
-  const isSmallScreen = height <= 700;
+  const isSmallScreen = height < 870;
 
   // ── Auto-advance: route changes ────────────────────────────────────────────
   useEffect(() => {
