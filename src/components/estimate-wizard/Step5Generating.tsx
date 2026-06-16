@@ -105,10 +105,10 @@ export function Step5Generating() {
         <ActivityIndicator size="large" color={tokens.accent} />
       </View>
       <Text className="text-2xl font-bold text-app-text-primary text-center mb-3">
-        Generating estimate…
+        Building your estimate draft…
       </Text>
       <Text className="text-app-text-secondary text-center leading-6">
-        Building your estimate draft…
+        This usually takes just a few seconds.
       </Text>
     </View>
   );
