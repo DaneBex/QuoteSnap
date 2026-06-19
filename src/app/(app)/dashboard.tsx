@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Plus, Settings } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EstimateCard } from "@/components/dashboard/EstimateCard";
@@ -50,6 +50,7 @@ export default function DashboardScreen() {
       setLoading(false);
       const seen = await hasDemoBeenSeen();
       if (!seen) showWelcome();
+      hasInitialized.current = true;
     };
     init();
   }, [fetchEstimates, showWelcome]);
@@ -59,6 +60,15 @@ export default function DashboardScreen() {
     await fetchEstimates();
     setRefreshing(false);
   }, [fetchEstimates]);
+
+  const hasInitialized = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasInitialized.current) return;
+      fetchEstimates();
+    }, [fetchEstimates])
+  );
 
   const isDemoFab = phase === "walkthrough" && step === "dashboard";
   const pulseAnim = useRef(new Animated.Value(0)).current;

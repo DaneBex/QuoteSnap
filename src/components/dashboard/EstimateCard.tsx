@@ -27,7 +27,7 @@ export function EstimateCard({ estimate }: EstimateCardProps) {
         </View>
         <View className="flex-1">
           <Text className="font-semibold text-app-text-primary text-base">
-            {customer?.name || "No customer"}
+            {estimate.title || customer?.name || "No customer"}
           </Text>
           <Text className="text-app-text-secondary text-sm mt-0.5">
             {estimate.jobs?.job_type} · {formatDate(estimate.created_at)}

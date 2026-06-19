@@ -65,6 +65,7 @@ export interface SavedEstimate {
   prices_confirmed: boolean;
   prices_confirmed_at: string | null;
   clarification_round: number;
+  title: string | null;
   created_at: string;
   updated_at: string;
   jobs?: {

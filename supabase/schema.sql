@@ -147,6 +147,7 @@ alter table public.estimates add column if not exists optional_questions jsonb n
 alter table public.estimates add column if not exists prices_confirmed boolean not null default false;
 alter table public.estimates add column if not exists prices_confirmed_at timestamptz;
 alter table public.estimates add column if not exists clarification_round integer not null default 0;
+alter table public.estimates add column if not exists title text;
 
 alter table public.job_photos add column if not exists include_in_customer_estimate boolean not null default false;
 alter table public.job_photos add column if not exists sort_order integer not null default 0;
