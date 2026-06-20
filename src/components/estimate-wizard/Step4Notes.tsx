@@ -44,7 +44,7 @@ export function Step4Notes() {
     >
       <Text className="text-2xl font-bold text-app-text-primary mb-1">Job notes</Text>
       <Text className="text-app-text-secondary mb-1">
-        Describe the work in your own words. The messier the better — the AI will clean it up.
+        Describe the work in your own words. The messier the better — QuoteSnap will clean it up.
       </Text>
       <Text className="text-sm text-app-text-secondary mb-3">
         Mention what needs done, rough measurements, material preferences, access issues, timeline, and anything uncertain.
