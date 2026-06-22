@@ -26,6 +26,7 @@ interface WizardState {
   savedJobId: string | null;
   savedEstimateId: string | null;
   clarifyingAnswers: ClarifyingAnswer[];
+  draftWithAssumptions: boolean;
 
   setStep: (step: number) => void;
   setJobType: (jobType: string) => void;
@@ -39,6 +40,7 @@ interface WizardState {
   setGenerationError: (error: string | null) => void;
   setSavedIds: (jobId: string, estimateId: string) => void;
   setClarifyingAnswers: (answers: ClarifyingAnswer[]) => void;
+  setDraftWithAssumptions: (value: boolean) => void;
   reset: () => void;
 }
 
@@ -61,6 +63,7 @@ export const useWizardStore = create<WizardState>((set) => ({
   savedJobId: null,
   savedEstimateId: null,
   clarifyingAnswers: [],
+  draftWithAssumptions: false,
 
   setStep: (step) => set({ currentStep: step }),
   setJobType: (jobType) => set({ jobType }),
@@ -81,6 +84,7 @@ export const useWizardStore = create<WizardState>((set) => ({
   setSavedIds: (savedJobId, savedEstimateId) =>
     set({ savedJobId, savedEstimateId }),
   setClarifyingAnswers: (clarifyingAnswers) => set({ clarifyingAnswers }),
+  setDraftWithAssumptions: (draftWithAssumptions) => set({ draftWithAssumptions }),
   reset: () =>
     set({
       currentStep: 1,
@@ -94,5 +98,6 @@ export const useWizardStore = create<WizardState>((set) => ({
       savedJobId: null,
       savedEstimateId: null,
       clarifyingAnswers: [],
+      draftWithAssumptions: false,
     }),
 }));

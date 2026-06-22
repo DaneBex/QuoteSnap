@@ -21,12 +21,14 @@ export function Step5Generating() {
     notes,
     photos,
     clarifyingAnswers,
+    draftWithAssumptions,
     generatedEstimate,
     isGenerating,
     generationError,
     setIsGenerating,
     setGeneratedEstimate,
     setGenerationError,
+    setDraftWithAssumptions,
     setStep,
   } = useWizardStore();
 
@@ -36,6 +38,9 @@ export function Step5Generating() {
 
     try {
       const isRevision = clarifyingAnswers.length > 0;
+      // When drafting with assumptions, pass the existing estimate as context even if no answers were typed,
+      // so the model knows which questions to resolve with assumptions rather than re-generating from scratch.
+      const shouldPassCurrentEstimate = isRevision || (draftWithAssumptions && generatedEstimate != null);
       const { data, error } = await supabase.functions.invoke("generate-estimate", {
         body: {
           jobType,
@@ -43,7 +48,8 @@ export function Step5Generating() {
           notes,
           photoDescriptions: photos.map((p) => p.description).filter(Boolean),
           clarifyingAnswers: isRevision ? clarifyingAnswers : undefined,
-          currentEstimate: isRevision ? generatedEstimate : undefined,
+          currentEstimate: shouldPassCurrentEstimate ? generatedEstimate : undefined,
+          draftWithAssumptions: draftWithAssumptions || undefined,
         },
       });
 
@@ -68,6 +74,7 @@ export function Step5Generating() {
         err instanceof Error ? err.message : "Something went wrong. Please try again."
       );
     } finally {
+      setDraftWithAssumptions(false);
       setIsGenerating(false);
     }
   };

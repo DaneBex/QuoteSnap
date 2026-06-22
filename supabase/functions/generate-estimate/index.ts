@@ -61,8 +61,8 @@ function buildUpdateModeAddendum(round: number): string {
     ? "missingQuestions ≤ 1, optionalQuestions ≤ 1"
     : "missingQuestions ≤ 2, optionalQuestions ≤ 2";
   const assumptionPressure = isLateRound
-    ? `R3b. ASSUME AND PROCEED — You are in round ${round} of revision. Any question that is not a hard blocker (an unknown that prevents writing any line item at all) MUST become an assumption, not a question. Produce a priced draft estimate now. If you still cannot set unit prices, use qty:1, unit:"allowance", unit_price:0 with a cost range in the description, and set estimateQuality to "ready".`
-    : `R3b. PREFER ASSUMPTIONS — This is round ${round} of revision. Convert non-critical unknowns into assumptions rather than questions. Produce priced line items for everything you have enough information to price.`;
+    ? `R3b. ASSUME AND PROCEED — You are in round ${round} of revision. Any question that is not a hard blocker (an unknown that prevents writing any line item at all) MUST become an assumption, not a question. Treat answers of "unknown", "TBD", "not sure", "skip", "make your best estimate", or similar as valid responses — make a professional assumption and proceed. Produce a priced draft estimate now. If you still cannot set unit prices, use qty:1, unit:"allowance", unit_price:0 with a cost range in the description, and set estimateQuality to "ready".`
+    : `R3b. PREFER ASSUMPTIONS — This is round ${round} of revision. Convert non-critical unknowns into assumptions rather than questions. Treat answers of "unknown", "TBD", "not sure", "skip", or similar as valid responses — convert them into an assumption and do not re-ask. Produce priced line items for everything you have enough information to price.`;
 
   return `
 REVISION MODE — ROUND ${round} — ACTIVE WHEN CLARIFYING ANSWERS ARE PROVIDED:
@@ -82,6 +82,21 @@ R4. REVISE customerMessage with specifics — reference specific details from th
 R5. UPGRADE estimateQuality — if answers resolved major unknowns (measurements, material grade, scope boundaries), set estimateQuality to "ready". In round 2+, estimateQuality MUST be "ready" unless a measurement critical to all line items is still unknown.
 
 R6. REVISE, DO NOT REPLACE — treat CURRENT JOB SUMMARY and CURRENT SCOPE OF WORK as the working draft. Update only the parts that the answers change; preserve accurate framing.`;
+}
+
+function buildDraftWithAssumptionsAddendum(): string {
+  return `
+DRAFT-WITH-ASSUMPTIONS MODE — ACTIVE:
+
+The contractor has chosen to skip questions and produce a priced draft now. Apply these rules with no exceptions:
+
+DA1. ASSUME ALL UNKNOWNS — For every gap that would normally produce a missingQuestion, make a reasonable professional assumption. State each assumption in the "assumptions" array.
+DA2. NO MISSING QUESTIONS — missingQuestions MUST be []. Do not generate any blocking questions. Not even one.
+DA3. PRICE EVERYTHING — Use professional judgment to set qty, unit_price, and total for every line item. Where measurements are genuinely unknown, use qty:1, unit:"allowance" with a representative cost range in the description. Do not leave unit_price at 0.
+DA4. ESTIMATE QUALITY — You MUST return estimateQuality: "ready". Never return "needs_detail" in this mode, even if the input is vague. The contractor accepts that this is a rough draft requiring review.
+DA5. ASSUMPTIONS FIELD — Populate assumptions with 2–3 concise statements explaining key judgments (material grade assumed, area assumed, scope boundary assumed, etc.).
+DA6. NO OPTIONAL QUESTIONS — optionalQuestions MUST be [].
+DA7. OPEN QUESTIONS — If OPEN QUESTIONS TO RESOLVE WITH ASSUMPTIONS are listed below, resolve each one with a professional assumption. Write each assumption into the "assumptions" array. Do not put them back as questions.`;
 }
 
 Deno.serve(async (req) => {
@@ -119,7 +134,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { jobType, customer, notes, photoDescriptions, clarifyingAnswers, previousAnswers, currentEstimate, clarificationRound } = await req.json();
+    const { jobType, customer, notes, photoDescriptions, clarifyingAnswers, previousAnswers, currentEstimate, clarificationRound, draftWithAssumptions } = await req.json();
 
     photosIncluded = Array.isArray(photoDescriptions) && photoDescriptions.length > 0;
     const hasAnswers = Array.isArray(clarifyingAnswers) && clarifyingAnswers.length > 0;
@@ -167,12 +182,23 @@ Deno.serve(async (req) => {
       Array.isArray(previousAnswers) && previousAnswers.length > 0
         ? `\nPREVIOUSLY ANSWERED QUESTIONS (do not re-ask any of these):\n${(previousAnswers as { question: string; answer: string }[]).map((a) => `Q: ${a.question}\nA: ${a.answer}`).join("\n\n")}`
         : null,
+      draftWithAssumptions && Array.isArray(currentEstimate?.missingQuestions) && currentEstimate.missingQuestions.length > 0 && !hasAnswers
+        ? `\nOPEN QUESTIONS TO RESOLVE WITH ASSUMPTIONS (per DA7 — make a professional assumption for each, do not put them back as questions):\n${(currentEstimate.missingQuestions as string[]).map((q: string, i: number) => `Q${i + 1}: ${q}`).join("\n")}`
+        : null,
     ]
       .filter(Boolean)
       .join("\n");
 
     const round = (typeof clarificationRound === "number" && clarificationRound > 0) ? clarificationRound : 1;
-    const systemPrompt = hasAnswers ? SYSTEM_PROMPT + "\n\n" + buildUpdateModeAddendum(round) : SYSTEM_PROMPT;
+    let systemPrompt = SYSTEM_PROMPT;
+    if (draftWithAssumptions) {
+      systemPrompt += "\n\n" + buildDraftWithAssumptionsAddendum();
+      if (hasAnswers) {
+        systemPrompt += "\n\n" + buildUpdateModeAddendum(round);
+      }
+    } else if (hasAnswers) {
+      systemPrompt += "\n\n" + buildUpdateModeAddendum(round);
+    }
     promptChars = systemPrompt.length + userPrompt.length;
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
@@ -194,6 +220,17 @@ Deno.serve(async (req) => {
 
     const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
     const payload = JSON.parse(cleaned);
+
+    // Hard enforcement for draft-with-assumptions mode — post-process regardless of model output.
+    // The model may still return needs_detail due to base-prompt rules conflicting with the addendum.
+    if (draftWithAssumptions) {
+      payload.estimateQuality = "ready";
+      payload.missingQuestions = [];
+      payload.optionalQuestions = [];
+      if (!Array.isArray(payload.assumptions) || payload.assumptions.length === 0) {
+        payload.assumptions = ["Scope and quantities assumed based on typical job size. Contractor should verify before sending to customer."];
+      }
+    }
 
     const pricing = MODEL_PRICING[MODEL] ?? { input: 0, output: 0 };
     const estimatedCost = (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output;

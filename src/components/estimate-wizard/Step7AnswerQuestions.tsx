@@ -15,7 +15,7 @@ import { tokens } from "@/styles";
 
 export function Step7AnswerQuestions() {
   const insets = useSafeAreaInsets();
-  const { generatedEstimate, setClarifyingAnswers, setStep } = useWizardStore();
+  const { generatedEstimate, setClarifyingAnswers, setDraftWithAssumptions, setStep } = useWizardStore();
 
   const questions = generatedEstimate?.missingQuestions ?? [];
   const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""));
@@ -25,6 +25,17 @@ export function Step7AnswerQuestions() {
       .map((question, i) => ({ question, answer: answers[i].trim() }))
       .filter((pair) => pair.answer.length > 0);
     setClarifyingAnswers(pairs);
+    setStep(5);
+  };
+
+  const handleDraftWithAssumptions = () => {
+    const pairs = questions
+      .map((question, i) => ({ question, answer: answers[i].trim() }))
+      .filter((pair) => pair.answer.length > 0);
+    if (pairs.length > 0) {
+      setClarifyingAnswers(pairs);
+    }
+    setDraftWithAssumptions(true);
     setStep(5);
   };
 
@@ -44,11 +55,10 @@ export function Step7AnswerQuestions() {
         </TouchableOpacity>
 
         <Text className="text-2xl font-bold text-app-text-primary mb-1">
-          Answer Questions
+          Clarify Details
         </Text>
         <Text className="text-app-text-secondary mb-6 leading-5">
-          Answer what you can — any detail helps build a more accurate estimate.
-          Unanswered questions are skipped.
+          Answer what you can to improve accuracy. Or skip ahead and let the app fill in reasonable assumptions.
         </Text>
 
         {questions.map((question, i) => (
@@ -80,6 +90,14 @@ export function Step7AnswerQuestions() {
       >
         <Button onPress={handleRegenerate} size="lg" className="w-full">
           Update Estimate
+        </Button>
+        <Button
+          onPress={handleDraftWithAssumptions}
+          size="lg"
+          variant="secondary"
+          className="w-full"
+        >
+          Create Draft With Assumptions
         </Button>
         <Button
           onPress={() => setStep(6)}

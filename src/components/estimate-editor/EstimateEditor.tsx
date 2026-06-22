@@ -191,6 +191,7 @@ function QuestionsCard({
   onAnswersChange,
   regenerating,
   onUpdateEstimate,
+  onDraftWithAssumptions,
 }: {
   questions: string[];
   hasPricing: boolean;
@@ -200,6 +201,7 @@ function QuestionsCard({
   onAnswersChange: (answers: string[]) => void;
   regenerating: boolean;
   onUpdateEstimate: () => void;
+  onDraftWithAssumptions: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
@@ -282,7 +284,7 @@ function QuestionsCard({
       {showAnswers && (
         <View className="mt-4 gap-3">
           <Text className="text-xs text-app-text-secondary leading-4">
-            Answer what you can. Unanswered questions will be skipped.
+            Answer what you can. Or use "Create Draft With Assumptions" to skip and let the app fill in reasonable defaults.
           </Text>
           {questions.map((question, i) => (
             <View key={i}>
@@ -315,6 +317,13 @@ function QuestionsCard({
             <Text className="text-app-text-inverse font-bold text-sm">
               {regenerating ? "Updating…" : "Update Estimate"}
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onDraftWithAssumptions}
+            disabled={regenerating}
+            className="border border-app-accent rounded-xl py-3 items-center"
+          >
+            <Text className="text-app-accent font-bold text-sm">Create Draft With Assumptions</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -510,7 +519,7 @@ export function EstimateEditor({
     }).eq("id", estimateId);
   };
 
-  const handleRegenerate = async () => {
+  const handleRegenerate = async (draftWithAssumptions = false) => {
     const currentValues = getValues();
     const pairs: ClarifyingAnswer[] = missingQuestions
       .map((question, i) => ({ question, answer: answers[i]?.trim() ?? "" }))
@@ -531,6 +540,7 @@ export function EstimateEditor({
           clarifyingAnswers: pairs.length > 0 ? pairs : undefined,
           previousAnswers: resolvedAnswerHistory,
           clarificationRound: clarificationRound,
+          draftWithAssumptions: draftWithAssumptions || undefined,
           currentEstimate: {
             lineItems: currentValues.lineItems,
             jobSummary: currentValues.jobSummary,
@@ -753,6 +763,7 @@ export function EstimateEditor({
             onAnswersChange={setAnswers}
             regenerating={regenerating}
             onUpdateEstimate={handleRegenerate}
+            onDraftWithAssumptions={() => handleRegenerate(true)}
           />
         )}
 
