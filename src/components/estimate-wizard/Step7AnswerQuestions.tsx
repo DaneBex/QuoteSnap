@@ -15,9 +15,24 @@ import { tokens } from "@/styles";
 
 export function Step7AnswerQuestions() {
   const insets = useSafeAreaInsets();
-  const { generatedEstimate, setClarifyingAnswers, setDraftWithAssumptions, setStep } = useWizardStore();
+  const {
+    generatedEstimate,
+    clarificationRound,
+    setClarifyingAnswers,
+    setDraftWithAssumptions,
+    incrementClarificationRound,
+    setStep,
+  } = useWizardStore();
 
-  const questions = generatedEstimate?.missingQuestions ?? [];
+  const isSecondRound = clarificationRound >= 1;
+
+  const questions = isSecondRound
+    ? [
+        ...(generatedEstimate?.missingQuestions ?? []),
+        ...(generatedEstimate?.optionalQuestions ?? []),
+      ]
+    : (generatedEstimate?.missingQuestions ?? []);
+
   const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""));
 
   const handleRegenerate = () => {
@@ -25,6 +40,7 @@ export function Step7AnswerQuestions() {
       .map((question, i) => ({ question, answer: answers[i].trim() }))
       .filter((pair) => pair.answer.length > 0);
     setClarifyingAnswers(pairs);
+    incrementClarificationRound();
     setStep(5);
   };
 
@@ -36,6 +52,7 @@ export function Step7AnswerQuestions() {
       setClarifyingAnswers(pairs);
     }
     setDraftWithAssumptions(true);
+    incrementClarificationRound();
     setStep(5);
   };
 
@@ -54,12 +71,25 @@ export function Step7AnswerQuestions() {
           <Text className="text-app-text-secondary text-sm">Back to review</Text>
         </TouchableOpacity>
 
-        <Text className="text-2xl font-bold text-app-text-primary mb-1">
-          Clarify Details
-        </Text>
-        <Text className="text-app-text-secondary mb-6 leading-5">
-          Answer what you can to improve accuracy. Or skip ahead and let the app fill in reasonable assumptions.
-        </Text>
+        {isSecondRound ? (
+          <>
+            <Text className="text-2xl font-bold text-app-text-primary mb-1">
+              Draft Ready — Optional Details Could Improve It
+            </Text>
+            <Text className="text-app-text-secondary mb-6 leading-5">
+              QuoteSnap has enough information to create an estimate draft. These optional details may improve accuracy, but you can also create the draft now with clear assumptions.
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text className="text-2xl font-bold text-app-text-primary mb-1">
+              Clarify Details
+            </Text>
+            <Text className="text-app-text-secondary mb-6 leading-5">
+              Answer what you can to improve accuracy. Or skip ahead and let the app fill in reasonable assumptions.
+            </Text>
+          </>
+        )}
 
         {questions.map((question, i) => (
           <Card key={i} className="mb-4">
@@ -89,7 +119,7 @@ export function Step7AnswerQuestions() {
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
         <Button onPress={handleRegenerate} size="lg" className="w-full">
-          Update Estimate
+          {isSecondRound ? "Answer Optional Questions" : "Update Estimate"}
         </Button>
         <Button
           onPress={handleDraftWithAssumptions}
@@ -97,16 +127,18 @@ export function Step7AnswerQuestions() {
           variant="secondary"
           className="w-full"
         >
-          Create Draft With Assumptions
+          Create Draft with Assumptions
         </Button>
-        <Button
-          onPress={() => setStep(6)}
-          size="lg"
-          variant="ghost"
-          className="w-full"
-        >
-          Skip — Keep Draft
-        </Button>
+        {!isSecondRound && (
+          <Button
+            onPress={() => setStep(6)}
+            size="lg"
+            variant="ghost"
+            className="w-full"
+          >
+            Skip — Keep Draft
+          </Button>
+        )}
       </View>
     </View>
   );

@@ -28,12 +28,12 @@ RULES:
 6. If CURRENT ESTIMATE LINE ITEMS are provided, treat them as the contractor's manual edits. Preserve every line item where unit_price > 0 or qty > 1 exactly as-is — do not alter its description, qty, unit, unit_price, or total unless the clarifying answers explicitly change that item's scope. Only update or fill in line items with unit_price = 0 using new information from the answers. Add new line items only for scope revealed by the answers that isn't already covered.
 
 QUESTION CATEGORIES — separate questions into two lists:
-- missingQuestions: CRITICAL blockers only — missing measurements, unknown scope boundary, unknown material type, unresolved active damage/water intrusion. Max 4. If you know enough to build a credible estimate, return [].
+- missingQuestions: CRITICAL blockers only — missing measurements, unknown scope boundary, unknown material type, unresolved active damage/water intrusion. Max 4. If you know enough to build a credible estimate, return []. Before flagging a blocker, ask yourself: can I price this with an allowance (qty:1, unit:"allowance") or a conditional-scope note? If yes, do that and skip the question. Only flag a missingQuestion if the estimate would be materially misleading or unpriceable without the answer — not merely less precise.
 - optionalQuestions: Helpful but non-blocking — budget range, preferred timeline, preferred brand, optional finish details, contingency preferences. Max 3. NEVER put budget range or preferred timeline in missingQuestions.
 
 ESTIMATE QUALITY — set estimateQuality based on pricability:
 - "ready": enough detail (measurements, scope, material grade) for a credible priced estimate
-- "needs_detail": total would be $0, 3+ blocking questions, or no notes beyond job type
+- "needs_detail": the job type or scope is so vague that no line items can be written at all. If you can write even one priced or allowance line item, use "ready" instead.
 
 OUTPUT SIZE LIMITS: jobSummary ≤ 2 sentences | scopeOfWork ≤ 5 bullets (• prefix) | lineItems ≤ 6 | materialsChecklist ≤ 5 | missingQuestions ≤ 4 | optionalQuestions ≤ 3 | assumptions ≤ 3 | customerMessage ≤ 2 sentences
 
@@ -79,7 +79,7 @@ ${assumptionPressure}
 
 R4. REVISE customerMessage with specifics — reference specific details from the answers (material type, measurements, finish, etc.) rather than generic language. Do not ask for information that was already answered. Maintain the same neutral tone as rule 4 in the base prompt: no sales phrases, no implication the customer has committed.
 
-R5. UPGRADE estimateQuality — if answers resolved major unknowns (measurements, material grade, scope boundaries), set estimateQuality to "ready". In round 2+, estimateQuality MUST be "ready" unless a measurement critical to all line items is still unknown.
+R5. UPGRADE estimateQuality — if answers resolved major unknowns (measurements, material grade, scope boundaries), set estimateQuality to "ready". In round 1+, estimateQuality SHOULD be "ready"; only use "needs_detail" if the estimate is still fundamentally unpriceable after applying the answers. In round 2+, estimateQuality MUST be "ready" unless a measurement critical to all line items is still unknown.
 
 R6. REVISE, DO NOT REPLACE — treat CURRENT JOB SUMMARY and CURRENT SCOPE OF WORK as the working draft. Update only the parts that the answers change; preserve accurate framing.`;
 }

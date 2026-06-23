@@ -33,6 +33,7 @@ function QuestionsCard({
   customerEmail,
   jobType,
   onAnswerQuestions,
+  isOptional = false,
 }: {
   questions: string[];
   hasPricing: boolean;
@@ -41,6 +42,7 @@ function QuestionsCard({
   customerEmail: string;
   jobType: string;
   onAnswerQuestions: () => void;
+  isOptional?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -63,6 +65,62 @@ function QuestionsCard({
     const body = encodeURIComponent(buildSmsBody(customerName, jobType, questions));
     Linking.openURL(`mailto:${customerEmail}?subject=${subject}&body=${body}`);
   };
+
+  if (isOptional) {
+    return (
+      <Card className="mb-4 border-stone-200 bg-stone-50">
+        <Text className="font-bold text-stone-700 mb-1">
+          Optional Details Could Improve It
+        </Text>
+        <Text className="text-xs text-stone-500 mb-2 leading-4">
+          Answering these may improve accuracy, but the draft is ready to save now.
+        </Text>
+        {questions.map((q, i) => (
+          <Text key={i} className="text-stone-600 mb-1 leading-5 text-sm">• {q}</Text>
+        ))}
+
+        <View className="flex-row flex-wrap gap-2 mt-3 pt-3 border-t border-stone-200">
+          <TouchableOpacity
+            onPress={handleCopy}
+            className="flex-row items-center gap-1.5 bg-white border border-stone-200 rounded-lg px-3 py-1.5"
+          >
+            <Copy size={14} color={tokens.accent} />
+            <Text className="text-xs font-medium text-app-text-primary">
+              {copied ? "Copied!" : "Copy"}
+            </Text>
+          </TouchableOpacity>
+
+          {customerPhone ? (
+            <TouchableOpacity
+              onPress={handleText}
+              className="flex-row items-center gap-1.5 bg-white border border-stone-200 rounded-lg px-3 py-1.5"
+            >
+              <MessageSquare size={14} color={tokens.accent} />
+              <Text className="text-xs font-medium text-app-text-primary">Text Customer</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {customerEmail ? (
+            <TouchableOpacity
+              onPress={handleEmail}
+              className="flex-row items-center gap-1.5 bg-white border border-stone-200 rounded-lg px-3 py-1.5"
+            >
+              <Mail size={14} color={tokens.accent} />
+              <Text className="text-xs font-medium text-app-text-primary">Email Customer</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <TouchableOpacity
+            onPress={onAnswerQuestions}
+            className="flex-row items-center gap-1.5 bg-app-accent rounded-lg px-3 py-1.5"
+          >
+            <MessageCircle size={14} color={tokens.textInverse} />
+            <Text className="text-xs font-medium text-app-text-inverse">Answer Optional Questions</Text>
+          </TouchableOpacity>
+        </View>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mb-4 border-amber-200 bg-amber-50">
@@ -125,6 +183,7 @@ export function Step6Review() {
     notes,
     photos,
     generatedEstimate,
+    clarificationRound,
     setStep,
     reset,
   } = useWizardStore();
@@ -133,8 +192,14 @@ export function Step6Review() {
   if (!generatedEstimate) return null;
 
   const subtotal = generatedEstimate.lineItems.reduce((sum, li) => sum + li.total, 0);
-  const isLowQuality = generatedEstimate.estimateQuality === "needs_detail";
+  const isAfterFirstRound = clarificationRound >= 1;
+  const isLowQuality = !isAfterFirstRound && generatedEstimate.estimateQuality === "needs_detail";
   const hasPricing = subtotal > 0;
+
+  const optionalQuestions = [
+    ...(generatedEstimate.missingQuestions ?? []),
+    ...(generatedEstimate.optionalQuestions ?? []),
+  ];
 
   const handleSave = async () => {
     setSaving(true);
@@ -248,7 +313,19 @@ export function Step6Review() {
             : "Review the AI-generated draft below. Confirm pricing and final details before sending."}
         </Text>
 
-        {generatedEstimate.missingQuestions.length > 0 && (
+        {isAfterFirstRound && optionalQuestions.length > 0 && (
+          <QuestionsCard
+            questions={optionalQuestions}
+            hasPricing={hasPricing}
+            customerName={customer.name}
+            customerPhone={customer.phone}
+            customerEmail={customer.email}
+            jobType={jobType}
+            onAnswerQuestions={() => setStep(7)}
+            isOptional
+          />
+        )}
+        {!isAfterFirstRound && generatedEstimate.missingQuestions.length > 0 && (
           <QuestionsCard
             questions={generatedEstimate.missingQuestions}
             hasPricing={hasPricing}
@@ -304,7 +381,7 @@ export function Step6Review() {
         className="bg-app-surface border-t border-app-border px-4 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
-        {isLowQuality ? (
+        {!isAfterFirstRound && isLowQuality ? (
           <View className="gap-3">
             <Button onPress={() => setStep(7)} size="lg" className="w-full">
               Answer Questions
