@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { ChevronRight, FileText } from "lucide-react-native";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
+import { formatCurrency, formatDate, getStatusColor, getStatusLabel, getEffectiveStatusKey } from "@/lib/utils";
 import { tokens } from "@/styles";
 import type { SavedEstimate } from "@/types/estimate";
 
@@ -14,7 +14,17 @@ interface EstimateCardProps {
 export function EstimateCard({ estimate }: EstimateCardProps) {
   const router = useRouter();
   const customer = estimate.jobs?.customers;
-  const statusColor = getStatusColor(estimate.status);
+  const hasZeroPrices = estimate.line_items.some(
+    (li) => li.description && (Number(li.unit_price) || 0) === 0
+  );
+  const effectiveStatus = getEffectiveStatusKey(
+    estimate.status,
+    estimate.prices_confirmed,
+    estimate.subtotal ?? 0,
+    estimate.missing_questions.length,
+    hasZeroPrices
+  );
+  const statusColor = getStatusColor(effectiveStatus);
 
   return (
     <TouchableOpacity
@@ -40,7 +50,7 @@ export function EstimateCard({ estimate }: EstimateCardProps) {
         </View>
         <View className="items-end gap-1.5">
           <Badge
-            label={getStatusLabel(estimate.status)}
+            label={getStatusLabel(effectiveStatus)}
             className={statusColor}
           />
           <ChevronRight size={16} color={tokens.textTertiary} />
