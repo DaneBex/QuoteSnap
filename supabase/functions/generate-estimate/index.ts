@@ -28,8 +28,10 @@ RULES:
 6. If CURRENT ESTIMATE LINE ITEMS are provided, treat them as the contractor's manual edits. Preserve every line item where unit_price > 0 or qty > 1 exactly as-is — do not alter its description, qty, unit, unit_price, or total unless the clarifying answers explicitly change that item's scope. Only update or fill in line items with unit_price = 0 using new information from the answers. Add new line items only for scope revealed by the answers that isn't already covered.
 
 QUESTION CATEGORIES — separate questions into two lists:
-- missingQuestions: CRITICAL blockers only — missing measurements, unknown scope boundary, unknown material type, unresolved active damage/water intrusion. Max 4. If you know enough to build a credible estimate, return []. Before flagging a blocker, ask yourself: can I price this with an allowance (qty:1, unit:"allowance") or a conditional-scope note? If yes, do that and skip the question. Only flag a missingQuestion if the estimate would be materially misleading or unpriceable without the answer — not merely less precise.
+- missingQuestions: Ask every question that would meaningfully improve pricing accuracy — missing measurements, scope boundaries, material type, damage extent, anything that affects what to charge. Use all 4 slots if needed. Max 4.
 - optionalQuestions: Helpful but non-blocking — budget range, preferred timeline, preferred brand, optional finish details, contingency preferences. Max 3. NEVER put budget range or preferred timeline in missingQuestions.
+
+QUESTION VOICE — All questions must be phrased as an AI assistant asking the contractor for information, not as the contractor speaking to their customer. Address the contractor directly using "you/your". Never use "we", "our", or phrases that cast the AI as the contractor. Wrong: "Should we proceed with mold repair at an additional cost, or wait for your approval?" Right: "If mold or rot is found, do you plan to proceed and bill extra, or pause for customer approval?" Wrong: "Would you like us to apply a sealant?" Right: "Do you want to include a water-resistant sealant in this estimate?"
 
 ESTIMATE QUALITY — set estimateQuality based on pricability:
 - "ready": enough detail (measurements, scope, material grade) for a credible priced estimate
@@ -61,7 +63,7 @@ function buildUpdateModeAddendum(round: number): string {
     ? "missingQuestions ≤ 1, optionalQuestions ≤ 1"
     : "missingQuestions ≤ 2, optionalQuestions ≤ 2";
   const assumptionPressure = isLateRound
-    ? `R3b. ASSUME AND PROCEED — You are in round ${round} of revision. Any question that is not a hard blocker (an unknown that prevents writing any line item at all) MUST become an assumption, not a question. Treat answers of "unknown", "TBD", "not sure", "skip", "make your best estimate", or similar as valid responses — make a professional assumption and proceed. Produce a priced draft estimate now. If you still cannot set unit prices, use qty:1, unit:"allowance", unit_price:0 with a cost range in the description, and set estimateQuality to "ready".`
+    ? `R3b. ASSUME AND PROCEED — You are in round ${round} of revision. Any question that is not a hard blocker (an unknown that prevents writing any line item at all) MUST become an assumption, not a question. Treat answers of "unknown", "TBD", "not sure", "skip", "make your best estimate", or similar as valid responses — make a professional assumption and proceed. Produce a priced draft estimate now. If measurements are still unknown, use qty:1, unit:"allowance" with a representative unit_price (not 0) and a cost range in the description.`
     : `R3b. PREFER ASSUMPTIONS — This is round ${round} of revision. Convert non-critical unknowns into assumptions rather than questions. Treat answers of "unknown", "TBD", "not sure", "skip", or similar as valid responses — convert them into an assumption and do not re-ask. Produce priced line items for everything you have enough information to price.`;
 
   return `
@@ -81,7 +83,9 @@ R4. REVISE customerMessage with specifics — reference specific details from th
 
 R5. UPGRADE estimateQuality — if answers resolved major unknowns (measurements, material grade, scope boundaries), set estimateQuality to "ready". In round 1+, estimateQuality SHOULD be "ready"; only use "needs_detail" if the estimate is still fundamentally unpriceable after applying the answers. In round 2+, estimateQuality MUST be "ready" unless a measurement critical to all line items is still unknown.
 
-R6. REVISE, DO NOT REPLACE — treat CURRENT JOB SUMMARY and CURRENT SCOPE OF WORK as the working draft. Update only the parts that the answers change; preserve accurate framing.`;
+R6. REVISE, DO NOT REPLACE — treat CURRENT JOB SUMMARY and CURRENT SCOPE OF WORK as the working draft. Update only the parts that the answers change; preserve accurate framing.
+
+R7. PRICE EVERYTHING — You are in revision mode; the contractor has provided answers. All line items MUST have unit_price > 0. Use professional judgment and regional averages to set a price for every item. Where measurements are still unknown, use qty:1, unit:"allowance" with a representative unit_price (not 0) and note the assumption in the description. Do not return any line item with unit_price set to 0.`;
 }
 
 function buildDraftWithAssumptionsAddendum(): string {

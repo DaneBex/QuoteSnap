@@ -193,7 +193,7 @@ export function Step6Review() {
 
   const subtotal = generatedEstimate.lineItems.reduce((sum, li) => sum + li.total, 0);
   const isAfterFirstRound = clarificationRound >= 1;
-  const isLowQuality = !isAfterFirstRound && generatedEstimate.estimateQuality === "needs_detail";
+  const isLowQuality = !isAfterFirstRound && (generatedEstimate.missingQuestions ?? []).length > 0;
   const hasPricing = subtotal > 0;
 
   const optionalQuestions = [
@@ -255,6 +255,12 @@ export function Step6Review() {
       }
 
       // 4. Create estimate
+      // After round 1, remaining AI missingQuestions are no longer blocking — demote them to optional.
+      const savedMissingQuestions = isAfterFirstRound ? [] : (generatedEstimate.missingQuestions ?? []);
+      const savedOptionalQuestions = isAfterFirstRound
+        ? [...(generatedEstimate.missingQuestions ?? []), ...(generatedEstimate.optionalQuestions ?? [])]
+        : (generatedEstimate.optionalQuestions ?? []);
+
       const { data: estimate, error: estErr } = await supabase
         .from("estimates")
         .insert({
@@ -265,13 +271,15 @@ export function Step6Review() {
           scope_of_work: generatedEstimate.scopeOfWork,
           line_items: generatedEstimate.lineItems,
           materials_checklist: generatedEstimate.materialsChecklist,
-          missing_questions: generatedEstimate.missingQuestions,
+          missing_questions: savedMissingQuestions,
+          optional_questions: savedOptionalQuestions,
           assumptions: generatedEstimate.assumptions,
           optional_upsells: generatedEstimate.optionalUpsells,
           customer_message: generatedEstimate.customerMessage,
           subtotal,
           total: subtotal,
           status: "draft",
+          clarification_round: clarificationRound,
         })
         .select("id")
         .single();
@@ -328,7 +336,7 @@ export function Step6Review() {
         {!isAfterFirstRound && generatedEstimate.missingQuestions.length > 0 && (
           <QuestionsCard
             questions={generatedEstimate.missingQuestions}
-            hasPricing={hasPricing}
+            hasPricing={false}
             customerName={customer.name}
             customerPhone={customer.phone}
             customerEmail={customer.email}

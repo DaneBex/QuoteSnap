@@ -87,12 +87,13 @@ function EditableList({
           }}
           multiline
           scrollEnabled={false}
-          onContentSizeChange={(e) =>
-            setItemHeights((prev) => ({
-              ...prev,
-              [i]: Math.max(40, e.nativeEvent.contentSize.height),
-            }))
-          }
+          onContentSizeChange={(e) => {
+            const newH = Math.max(40, e.nativeEvent.contentSize.height);
+            setItemHeights((prev) => {
+              if ((prev[i] ?? 40) === newH) return prev;
+              return { ...prev, [i]: newH };
+            });
+          }}
           placeholder={placeholder}
           placeholderTextColor={tokens.textTertiary}
           className="bg-app-surface border border-app-border rounded-xl px-4 py-3 text-base text-app-text-primary mb-2"
@@ -149,12 +150,13 @@ function MaterialsChecklist({
             }}
             multiline
             scrollEnabled={false}
-            onContentSizeChange={(e) =>
-              setItemHeights((prev) => ({
-                ...prev,
-                [i]: Math.max(28, e.nativeEvent.contentSize.height),
-              }))
-            }
+            onContentSizeChange={(e) => {
+              const newH = Math.max(28, e.nativeEvent.contentSize.height);
+              setItemHeights((prev) => {
+                if ((prev[i] ?? 28) === newH) return prev;
+                return { ...prev, [i]: newH };
+              });
+            }}
             placeholder="Material item"
             placeholderTextColor={tokens.textTertiary}
             className="flex-1 text-base text-app-text-primary"
@@ -333,18 +335,80 @@ function QuestionsCard({
 
 function OptionalQuestionsCard({
   questions,
+  answers,
+  onAnswersChange,
+  regenerating,
+  onUpdateEstimate,
 }: {
   questions: string[];
+  answers: string[];
+  onAnswersChange: (answers: string[]) => void;
+  regenerating: boolean;
+  onUpdateEstimate: () => void;
 }) {
+  const [showAnswers, setShowAnswers] = useState(false);
+
   return (
     <Card className="mb-6 border-stone-200 bg-stone-50">
-      <Text className="font-bold text-stone-700 mb-2">Final Details to Confirm</Text>
+      <Text className="font-bold text-stone-700 mb-2">Optional Details</Text>
       <Text className="text-xs text-app-text-secondary mb-2 leading-4">
-        Pricing is ready — confirm these details before sending.
+        Answering these may improve accuracy — not required to confirm pricing.
       </Text>
       {questions.map((q, i) => (
         <Text key={i} className="text-stone-600 mb-1 leading-5 text-sm">• {q}</Text>
       ))}
+
+      <View className="mt-3 pt-3 border-t border-stone-200">
+        <TouchableOpacity
+          onPress={() => setShowAnswers((v) => !v)}
+          className="flex-row items-center gap-1.5 self-start bg-white border border-stone-200 rounded-lg px-3 py-1.5"
+        >
+          <MessageCircle size={14} color={tokens.accent} />
+          <Text className="text-xs font-medium text-app-text-primary">
+            {showAnswers ? "Hide" : "Answer to Refine Estimate"}
+          </Text>
+          {showAnswers
+            ? <ChevronUp size={12} color={tokens.textSecondary} />
+            : <ChevronDown size={12} color={tokens.textSecondary} />}
+        </TouchableOpacity>
+      </View>
+
+      {showAnswers && (
+        <View className="mt-4 gap-3">
+          {questions.map((question, i) => (
+            <View key={i}>
+              <Text className="text-sm font-medium text-stone-700 mb-1 leading-5">{question}</Text>
+              <TextInput
+                value={answers[i] ?? ""}
+                onChangeText={(v) => {
+                  const updated = [...answers];
+                  updated[i] = v;
+                  onAnswersChange(updated);
+                }}
+                multiline
+                placeholder="Your answer…"
+                placeholderTextColor={tokens.textTertiary}
+                className="bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm text-app-text-primary"
+                style={{ minHeight: 56, ...(Platform.OS === "web" && { overflow: "hidden" }) }}
+                textAlignVertical="top"
+              />
+            </View>
+          ))}
+
+          <TouchableOpacity
+            onPress={onUpdateEstimate}
+            disabled={regenerating}
+            className="bg-app-accent rounded-xl py-3 items-center flex-row justify-center gap-2"
+          >
+            {regenerating
+              ? <ActivityIndicator size="small" color={tokens.textInverse} />
+              : null}
+            <Text className="text-app-text-inverse font-bold text-sm">
+              {regenerating ? "Updating…" : "Update Estimate"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </Card>
   );
 }
@@ -391,6 +455,13 @@ export function EstimateEditor({
 
   const [optionalQuestions, setOptionalQuestions] = useState<string[]>(
     () => defaultValues.optionalQuestions ?? []
+  );
+
+  const [optionalAnswers, setOptionalAnswers] = useState<string[]>(() =>
+    initAnswers(
+      defaultValues.optionalQuestions ?? [],
+      defaultValues.clarifyingAnswers ?? []
+    )
   );
 
   const [pricesConfirmed, setPricesConfirmed] = useState(initialPricesConfirmed ?? false);
@@ -468,6 +539,7 @@ export function EstimateEditor({
     setAnswers(initAnswers(newQuestions, missingQuestions.map((q, i) => ({ question: q, answer: answers[i] ?? "" }))));
     setMaterialsChecked((payload.materialsChecklist ?? []).map(() => false));
     setOptionalQuestions(payload.optionalQuestions ?? []);
+    setOptionalAnswers((payload.optionalQuestions ?? []).map(() => ""));
     onMissingQuestionsChange?.((payload.missingQuestions ?? []).length);
   };
 
@@ -501,7 +573,6 @@ export function EstimateEditor({
     const confirmedAt = new Date().toISOString();
     confirmedPricingHashRef.current = computePricingHash(lineItems ?? []);
     setPricesConfirmed(true);
-    onPricesConfirmedChange?.(true, confirmedAt);
 
     const formattedTotal = formatCurrency(currentSubtotal);
     const totalSentence = `The estimated total for this scope is ${formattedTotal}.`;
@@ -517,13 +588,16 @@ export function EstimateEditor({
       status: "ready",
       updated_at: confirmedAt,
     }).eq("id", estimateId);
+
+    onPricesConfirmedChange?.(true, confirmedAt);
   };
 
   const handleRegenerate = async (draftWithAssumptions = false) => {
     const currentValues = getValues();
-    const pairs: ClarifyingAnswer[] = missingQuestions
-      .map((question, i) => ({ question, answer: answers[i]?.trim() ?? "" }))
-      .filter((pair) => pair.answer.length > 0);
+    const pairs: ClarifyingAnswer[] = [
+      ...missingQuestions.map((question, i) => ({ question, answer: answers[i]?.trim() ?? "" })),
+      ...optionalQuestions.map((question, i) => ({ question, answer: optionalAnswers[i]?.trim() ?? "" })),
+    ].filter((pair) => pair.answer.length > 0);
 
     setRegenerating(true);
     try {
@@ -569,7 +643,14 @@ export function EstimateEditor({
         (sum, li) => sum + parseAmount(li.qty) * parseAmount(li.unit_price), 0
       );
 
-      const newMissingQuestions = payload.missingQuestions ?? [];
+      // After answering questions (pairs provided), remaining missingQuestions are no longer blocking.
+      const isRevisionRound = pairs.length > 0;
+      const effectiveMissingQuestions = isRevisionRound ? [] : (payload.missingQuestions ?? []);
+      const effectiveOptionalQuestions = isRevisionRound
+        ? [...(payload.missingQuestions ?? []), ...(payload.optionalQuestions ?? [])]
+        : (payload.optionalQuestions ?? []);
+
+      const newMissingQuestions = effectiveMissingQuestions;
       const resolvedThisRound: ClarifyingAnswer[] = pairs.filter(
         (pair) => !newMissingQuestions.some((q) => q === pair.question)
       );
@@ -584,8 +665,8 @@ export function EstimateEditor({
         line_items: payload.lineItems,
         materials_checklist: payload.materialsChecklist,
         materials_checked: [],
-        missing_questions: payload.missingQuestions,
-        optional_questions: payload.optionalQuestions ?? [],
+        missing_questions: effectiveMissingQuestions,
+        optional_questions: effectiveOptionalQuestions,
         clarifying_answers: mergedAnswers,
         assumptions: payload.assumptions,
         optional_upsells: payload.optionalUpsells,
@@ -607,7 +688,7 @@ export function EstimateEditor({
 
       setResolvedAnswerHistory(mergedAnswers);
       setClarificationRound(clarificationRound + 1);
-      applyRegeneratedPayload(payload);
+      applyRegeneratedPayload({ ...payload, missingQuestions: effectiveMissingQuestions, optionalQuestions: effectiveOptionalQuestions });
       setPricesConfirmed(false);
     } catch (err) {
       const msg = (err as { message?: string })?.message ?? "Please try again.";
@@ -762,14 +843,20 @@ export function EstimateEditor({
             answers={answers}
             onAnswersChange={setAnswers}
             regenerating={regenerating}
-            onUpdateEstimate={handleRegenerate}
+            onUpdateEstimate={() => handleRegenerate()}
             onDraftWithAssumptions={() => handleRegenerate(true)}
           />
         )}
 
         {/* Optional Details — helpful but not required */}
         {optionalQuestions.length > 0 && (
-          <OptionalQuestionsCard questions={optionalQuestions} />
+          <OptionalQuestionsCard
+            questions={optionalQuestions}
+            answers={optionalAnswers}
+            onAnswersChange={setOptionalAnswers}
+            regenerating={regenerating}
+            onUpdateEstimate={() => handleRegenerate()}
+          />
         )}
 
         {/* Assumptions */}
