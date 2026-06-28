@@ -159,12 +159,19 @@ language plpgsql
 security definer
 as $$
 declare
+  user_paid    boolean;
   user_created integer;
   user_limit   integer;
 begin
-  select total_estimates_created, beta_estimate_limit
-    into user_created, user_limit
+  select is_paid, total_estimates_created, beta_estimate_limit
+    into user_paid, user_created, user_limit
     from public.users where id = new.user_id;
+
+  if user_paid then
+    update public.users set total_estimates_created = total_estimates_created + 1 where id = new.user_id;
+    return new;
+  end if;
+
   if user_created >= user_limit then
     raise exception 'beta_limit_reached';
   end if;
@@ -191,6 +198,22 @@ alter table public.job_photos add column if not exists include_in_customer_estim
 alter table public.job_photos add column if not exists sort_order integer not null default 0;
 
 alter table public.users add column if not exists has_seen_demo boolean not null default false;
+
+-- Full access flag: set to true via Supabase SQL editor when a user pays
+alter table public.users add column if not exists is_paid boolean not null default false;
+
+-- Helper: read current is_paid without triggering RLS recursion
+create or replace function public.current_user_is_paid()
+returns boolean language sql security definer as $$
+  select is_paid from public.users where id = auth.uid()
+$$;
+
+-- Prevent users from self-upgrading: is_paid can only change via service role (Supabase SQL editor)
+drop policy if exists "own record update" on public.users;
+create policy "own record update" on public.users
+  for update
+  using (auth.uid() = id)
+  with check (auth.uid() = id AND is_paid = public.current_user_is_paid());
 
 -- ─────────────────────────────────────────────────────────
 -- STORAGE

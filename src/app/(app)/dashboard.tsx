@@ -29,6 +29,7 @@ export default function DashboardScreen() {
   const { showWelcome, setDemoEstimateId, phase, step } = useDemoStore();
   const [estimates, setEstimates] = useState<SavedEstimate[]>([]);
   const [totalCreated, setTotalCreated] = useState(0);
+  const [isPaid, setIsPaid] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -41,14 +42,16 @@ export default function DashboardScreen() {
         .limit(50),
       supabase
         .from("users")
-        .select("total_estimates_created")
+        .select("total_estimates_created, is_paid")
         .single(),
     ]);
 
     const rows = (data as SavedEstimate[]) ?? [];
     setEstimates(rows);
     setDemoEstimateId(rows[0]?.id ?? null);
-    setTotalCreated((userRow as { total_estimates_created: number } | null)?.total_estimates_created ?? 0);
+    const ur = userRow as { total_estimates_created: number; is_paid: boolean } | null;
+    setTotalCreated(ur?.total_estimates_created ?? 0);
+    setIsPaid(ur?.is_paid ?? false);
   }, [setDemoEstimateId]);
 
   useEffect(() => {
@@ -152,13 +155,13 @@ export default function DashboardScreen() {
         style={{ paddingBottom: Math.max(insets.bottom + 8, 16) }}
       >
         {/* Beta usage counter */}
-        {!loading && (
+        {!loading && !isPaid && (
           <Text className="text-xs text-app-text-tertiary text-center mb-2">
             Beta estimates used: {Math.min(betaUsed, BETA_LIMIT)} / {BETA_LIMIT}
           </Text>
         )}
 
-        {atBetaLimit ? (
+        {!isPaid && atBetaLimit ? (
           <View className="bg-app-surface border border-app-border rounded-2xl p-4">
             <Text className="text-app-text-primary font-semibold text-base mb-1">
               Beta limit reached
