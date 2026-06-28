@@ -138,6 +138,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Beta limit check — uses cumulative counter so deletions don't free up slots
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("beta_estimate_limit, total_estimates_created")
+      .eq("id", user.id)
+      .single();
+    const betaLimit = (userRow as { beta_estimate_limit: number; total_estimates_created: number } | null)?.beta_estimate_limit ?? 3;
+    const totalCreated = (userRow as { beta_estimate_limit: number; total_estimates_created: number } | null)?.total_estimates_created ?? 0;
+    if (totalCreated >= betaLimit) {
+      return new Response(
+        JSON.stringify({ error: "beta_limit_reached", used: totalCreated, limit: betaLimit }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { jobType, customer, notes, photoDescriptions, clarifyingAnswers, previousAnswers, currentEstimate, clarificationRound, draftWithAssumptions } = await req.json();
 
     photosIncluded = Array.isArray(photoDescriptions) && photoDescriptions.length > 0;

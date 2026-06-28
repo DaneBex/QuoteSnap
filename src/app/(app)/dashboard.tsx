@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Animated,
   StyleSheet,
+  Linking,
 } from "react-native";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -27,21 +28,27 @@ export default function DashboardScreen() {
   const resetWizard = useWizardStore((s) => s.reset);
   const { showWelcome, setDemoEstimateId, phase, step } = useDemoStore();
   const [estimates, setEstimates] = useState<SavedEstimate[]>([]);
+  const [totalCreated, setTotalCreated] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchEstimates = useCallback(async () => {
-    const { data } = await supabase
-      .from("estimates")
-      .select(
-        `*, jobs(id, job_type, notes, customers(id, name, phone, email, address))`
-      )
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const [{ data }, { data: userRow }] = await Promise.all([
+      supabase
+        .from("estimates")
+        .select(`*, jobs(id, job_type, notes, customers(id, name, phone, email, address))`)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("users")
+        .select("total_estimates_created")
+        .single(),
+    ]);
 
     const rows = (data as SavedEstimate[]) ?? [];
     setEstimates(rows);
     setDemoEstimateId(rows[0]?.id ?? null);
+    setTotalCreated((userRow as { total_estimates_created: number } | null)?.total_estimates_created ?? 0);
   }, [setDemoEstimateId]);
 
   useEffect(() => {
@@ -87,6 +94,10 @@ export default function DashboardScreen() {
     anim.start();
     return () => anim.stop();
   }, [isDemoFab]);
+
+  const BETA_LIMIT = 3;
+  const betaUsed = totalCreated;
+  const atBetaLimit = betaUsed >= BETA_LIMIT;
 
   const handleNewEstimate = () => {
     resetWizard();
@@ -140,35 +151,66 @@ export default function DashboardScreen() {
         className="absolute bottom-0 left-0 right-0 px-4 bg-transparent"
         style={{ paddingBottom: Math.max(insets.bottom + 8, 16) }}
       >
-        <View style={{ position: "relative" }}>
-          {isDemoFab && (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  borderRadius: 20,
-                  borderWidth: 3,
-                  borderColor: "white",
-                  opacity: pulseAnim,
-                  top: -3,
-                  left: -3,
-                  right: -3,
-                  bottom: -3,
-                  zIndex: 10,
-                },
-              ]}
-            />
-          )}
-          <TouchableOpacity
-            onPress={handleNewEstimate}
-            className="bg-app-accent rounded-2xl py-4 flex-row items-center justify-center gap-2 shadow-lg"
-            activeOpacity={0.85}
-          >
-            <Plus size={24} color={tokens.textInverse} />
-            <Text className="text-app-text-inverse font-bold text-lg">New Estimate</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Beta usage counter */}
+        {!loading && (
+          <Text className="text-xs text-app-text-tertiary text-center mb-2">
+            Beta estimates used: {Math.min(betaUsed, BETA_LIMIT)} / {BETA_LIMIT}
+          </Text>
+        )}
+
+        {atBetaLimit ? (
+          <View className="bg-app-surface border border-app-border rounded-2xl p-4">
+            <Text className="text-app-text-primary font-semibold text-base mb-1">
+              Beta limit reached
+            </Text>
+            <Text className="text-app-text-secondary text-sm leading-5 mb-3">
+              You've used your 3 free beta estimates. I'm keeping the beta small while collecting contractor feedback. If QuoteSnap is useful and you want more access, send me a quick note and I'll unlock more estimates.
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL(
+                  "mailto:danebecker790@gmail.com?subject=QuoteSnap%20Beta%20Access%20Request"
+                )
+              }
+              className="bg-stone-700 rounded-xl py-3 items-center"
+              activeOpacity={0.85}
+            >
+              <Text className="text-white font-semibold text-base">
+                Request More Beta Access
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ position: "relative" }}>
+            {isDemoFab && (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    borderRadius: 20,
+                    borderWidth: 3,
+                    borderColor: "white",
+                    opacity: pulseAnim,
+                    top: -3,
+                    left: -3,
+                    right: -3,
+                    bottom: -3,
+                    zIndex: 10,
+                  },
+                ]}
+              />
+            )}
+            <TouchableOpacity
+              onPress={handleNewEstimate}
+              className="bg-app-accent rounded-2xl py-4 flex-row items-center justify-center gap-2 shadow-lg"
+              activeOpacity={0.85}
+            >
+              <Plus size={24} color={tokens.textInverse} />
+              <Text className="text-app-text-inverse font-bold text-lg">New Estimate</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );

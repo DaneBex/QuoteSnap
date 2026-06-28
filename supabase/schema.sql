@@ -141,6 +141,44 @@ create policy "owner" on public.estimates
 -- ─────────────────────────────────────────────────────────
 -- MIGRATIONS (run these if upgrading an existing database)
 -- ─────────────────────────────────────────────────────────
+
+-- Beta usage limit
+alter table public.users add column if not exists beta_estimate_limit integer not null default 3;
+
+-- Cumulative counter: only increments on insert, never decremented by deletes.
+-- Deleting an estimate does NOT free up a beta slot.
+alter table public.users add column if not exists total_estimates_created integer not null default 0;
+
+-- Backfill existing users from current rows (run once on existing databases).
+update public.users u
+  set total_estimates_created = (select count(*) from public.estimates e where e.user_id = u.id);
+
+create or replace function public.enforce_beta_estimate_limit()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  user_created integer;
+  user_limit   integer;
+begin
+  select total_estimates_created, beta_estimate_limit
+    into user_created, user_limit
+    from public.users where id = new.user_id;
+  if user_created >= user_limit then
+    raise exception 'beta_limit_reached';
+  end if;
+  update public.users set total_estimates_created = total_estimates_created + 1 where id = new.user_id;
+  return new;
+end;
+$$;
+
+drop trigger if exists enforce_beta_limit on public.estimates;
+create trigger enforce_beta_limit
+  before insert on public.estimates
+  for each row execute function public.enforce_beta_estimate_limit();
+-- To increase a user's limit: UPDATE public.users SET beta_estimate_limit = 10 WHERE email = 'user@example.com';
+-- To check a user's usage:    SELECT email, total_estimates_created, beta_estimate_limit FROM public.users;
 alter table public.estimates add column if not exists materials_checked jsonb not null default '[]'::jsonb;
 alter table public.estimates add column if not exists clarifying_answers jsonb not null default '[]'::jsonb;
 alter table public.estimates add column if not exists optional_questions jsonb not null default '[]'::jsonb;

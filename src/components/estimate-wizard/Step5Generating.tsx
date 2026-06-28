@@ -1,6 +1,7 @@
 import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useEffect } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { AlertCircle, RefreshCw, Lock } from "lucide-react-native";
 import { useWizardStore } from "@/stores/wizardStore";
 import { supabase } from "@/lib/supabase";
 import { tokens } from "@/styles";
@@ -15,6 +16,7 @@ const MESSAGES = [
 ];
 
 export function Step5Generating() {
+  const router = useRouter();
   const {
     jobType,
     customer,
@@ -86,24 +88,42 @@ export function Step5Generating() {
   }, []);
 
   if (generationError) {
+    const isBetaLimit = generationError === "beta_limit_reached";
     return (
       <View className="flex-1 items-center justify-center px-8">
-        <View className="w-16 h-16 bg-app-danger-light rounded-full items-center justify-center mb-4">
-          <AlertCircle size={32} color={tokens.danger} />
+        <View
+          className={`w-16 h-16 ${isBetaLimit ? "bg-amber-50" : "bg-app-danger-light"} rounded-full items-center justify-center mb-4`}
+        >
+          {isBetaLimit ? (
+            <Lock size={32} color={tokens.accentHover} />
+          ) : (
+            <AlertCircle size={32} color={tokens.danger} />
+          )}
         </View>
         <Text className="text-xl font-bold text-app-text-primary text-center mb-2">
-          Generation failed
+          {isBetaLimit ? "Beta limit reached" : "Generation failed"}
         </Text>
         <Text className="text-app-text-secondary text-center mb-8 leading-6">
-          {generationError}
+          {isBetaLimit
+            ? "You've used your 3 free beta estimates. Go to your dashboard to request more access."
+            : generationError}
         </Text>
-        <TouchableOpacity
-          onPress={generate}
-          className="bg-app-accent rounded-2xl px-8 py-4 flex-row items-center gap-2"
-        >
-          <RefreshCw size={20} color={tokens.textInverse} />
-          <Text className="text-app-text-inverse font-bold text-base">Try Again</Text>
-        </TouchableOpacity>
+        {isBetaLimit ? (
+          <TouchableOpacity
+            onPress={() => router.replace("/(app)/dashboard")}
+            className="bg-app-accent rounded-2xl px-8 py-4"
+          >
+            <Text className="text-app-text-inverse font-bold text-base">Back to Dashboard</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={generate}
+            className="bg-app-accent rounded-2xl px-8 py-4 flex-row items-center gap-2"
+          >
+            <RefreshCw size={20} color={tokens.textInverse} />
+            <Text className="text-app-text-inverse font-bold text-base">Try Again</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
