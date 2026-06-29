@@ -1,10 +1,21 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Returns CORS headers scoped to the request's Origin.
+// Non-browser callers (native app, curl) send no Origin header and need no Allow-Origin header.
+// ALLOWED_ORIGIN env secret restricts browser access to a specific deployment domain;
+// falls back to "*" when unset (local dev / staging).
+function getCorsHeaders(req: Request): Record<string, string> {
+  const requestOrigin = req.headers.get("Origin");
+  if (!requestOrigin) {
+    return { "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
+  }
+  const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "claude-haiku-4-5-20251001": { input: 0.80, output: 4.00 },
@@ -103,9 +114,32 @@ DA6. NO OPTIONAL QUESTIONS — optionalQuestions MUST be [].
 DA7. OPEN QUESTIONS — If OPEN QUESTIONS TO RESOLVE WITH ASSUMPTIONS are listed below, resolve each one with a professional assumption. Write each assumption into the "assumptions" array. Do not put them back as questions.`;
 }
 
+// Validates that the parsed Claude response matches the expected EstimatePayload shape.
+// Returns null on success or an error string describing the first failure.
+function validateEstimatePayload(p: unknown): string | null {
+  if (typeof p !== "object" || p === null) return "not an object";
+  const obj = p as Record<string, unknown>;
+  for (const key of ["jobSummary", "scopeOfWork", "customerMessage"] as const) {
+    if (typeof obj[key] !== "string") return `${key} missing or not a string`;
+  }
+  if (obj.estimateQuality !== "ready" && obj.estimateQuality !== "needs_detail")
+    return "estimateQuality invalid";
+  for (const key of ["lineItems", "materialsChecklist", "missingQuestions", "optionalQuestions", "assumptions", "optionalUpsells"] as const) {
+    if (!Array.isArray(obj[key])) return `${key} not an array`;
+  }
+  for (const item of obj.lineItems as unknown[]) {
+    const li = item as Record<string, unknown>;
+    if (typeof li.description !== "string") return "lineItem.description missing";
+    if (typeof li.qty !== "number") return "lineItem.qty not a number";
+    if (typeof li.unit_price !== "number") return "lineItem.unit_price not a number";
+    if (typeof li.total !== "number") return "lineItem.total not a number";
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: getCorsHeaders(req) });
   }
 
   const startTime = Date.now();
@@ -120,7 +154,7 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -134,7 +168,7 @@ Deno.serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -157,23 +191,39 @@ Deno.serve(async (req) => {
       if (totalCreated >= betaLimit) {
         return new Response(
           JSON.stringify({ error: "beta_limit_reached", used: totalCreated, limit: betaLimit }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
     }
 
     const { jobType, customer, notes, photoDescriptions, clarifyingAnswers, previousAnswers, currentEstimate, clarificationRound, draftWithAssumptions } = await req.json();
 
+    // Input length caps — server-side enforcement to prevent prompt injection and runaway token costs
+    if (typeof jobType === "string" && jobType.length > 200) {
+      return new Response(JSON.stringify({ error: "input_too_long" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    }
+    if (typeof notes === "string" && notes.length > 4000) {
+      return new Response(JSON.stringify({ error: "input_too_long" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    }
+    if (Array.isArray(clarifyingAnswers)) {
+      for (const a of clarifyingAnswers as { question: string; answer: string }[]) {
+        if (typeof a?.answer === "string" && a.answer.length > 1000) {
+          return new Response(JSON.stringify({ error: "input_too_long" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+        }
+      }
+    }
+
     photosIncluded = Array.isArray(photoDescriptions) && photoDescriptions.length > 0;
     const hasAnswers = Array.isArray(clarifyingAnswers) && clarifyingAnswers.length > 0;
     const hasCurrentEstimate = currentEstimate && Array.isArray(currentEstimate.lineItems) && currentEstimate.lineItems.length > 0;
 
+    // User-supplied fields are wrapped in XML tags so the model treats them as data, not instructions.
     const userPrompt = [
-      `JOB TYPE: ${jobType}`,
-      `CUSTOMER NAME: ${customer?.name || "Not provided"}`,
-      customer?.address ? `SITE ADDRESS: ${customer.address}` : null,
-      customer?.phone ? `CUSTOMER PHONE: ${customer.phone}` : null,
-      `\nCONTRACTOR NOTES:\n${notes || "(No notes provided)"}`,
+      `<job_type>${jobType}</job_type>`,
+      `<customer_name>${customer?.name || "Not provided"}</customer_name>`,
+      customer?.address ? `<site_address>${customer.address}</site_address>` : null,
+      customer?.phone ? `<customer_phone>${customer.phone}</customer_phone>` : null,
+      `\n<contractor_notes>\n${notes || "(No notes provided)"}\n</contractor_notes>`,
       photosIncluded
         ? `\nPHOTO OBSERVATIONS:\n${(photoDescriptions as string[]).map((d, i) => `• Photo ${i + 1}: ${d}`).join("\n")}`
         : null,
@@ -196,13 +246,13 @@ Deno.serve(async (req) => {
               const lines = originalQuestions
                 .map((q, i) => {
                   const a = answerMap.get(q) ?? "(no answer — question still open)";
-                  return `Q${i + 1}: ${q}\nA${i + 1}: ${a}`;
+                  return `Q${i + 1}: ${q}\nA${i + 1}: <answer>${a}</answer>`;
                 })
                 .join("\n\n");
               return `\nORIGINAL QUESTIONS BEING ANSWERED:\n${lines}`;
             }
             const lines = (clarifyingAnswers as { question: string; answer: string }[])
-              .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
+              .map((a) => `Q: ${a.question}\nA: <answer>${a.answer}</answer>`)
               .join("\n\n");
             return `\nCLARIFYING ANSWERS FROM CONTRACTOR:\n${lines}`;
           })()
@@ -247,16 +297,26 @@ Deno.serve(async (req) => {
     outputChars = text.length;
 
     const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-    const payload = JSON.parse(cleaned);
+    let payload: unknown;
+    try {
+      payload = JSON.parse(cleaned);
+    } catch {
+      throw new Error("Claude returned non-JSON output");
+    }
+    const validationError = validateEstimatePayload(payload);
+    if (validationError) {
+      console.error("[generate-estimate] payload validation failed:", validationError, JSON.stringify(payload).slice(0, 400));
+      throw new Error("Claude returned an invalid estimate structure");
+    }
 
     // Hard enforcement for draft-with-assumptions mode — post-process regardless of model output.
     // The model may still return needs_detail due to base-prompt rules conflicting with the addendum.
     if (draftWithAssumptions) {
-      payload.estimateQuality = "ready";
-      payload.missingQuestions = [];
-      payload.optionalQuestions = [];
-      if (!Array.isArray(payload.assumptions) || payload.assumptions.length === 0) {
-        payload.assumptions = ["Scope and quantities assumed based on typical job size. Contractor should verify before sending to customer."];
+      (payload as Record<string, unknown>).estimateQuality = "ready";
+      (payload as Record<string, unknown>).missingQuestions = [];
+      (payload as Record<string, unknown>).optionalQuestions = [];
+      if (!Array.isArray((payload as Record<string, unknown>).assumptions) || ((payload as Record<string, unknown>).assumptions as unknown[]).length === 0) {
+        (payload as Record<string, unknown>).assumptions = ["Scope and quantities assumed based on typical job size. Contractor should verify before sending to customer."];
       }
     }
 
@@ -271,7 +331,7 @@ Deno.serve(async (req) => {
     );
 
     return new Response(JSON.stringify(payload), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err) {
     console.log(
@@ -282,10 +342,10 @@ Deno.serve(async (req) => {
     );
     console.error("generate-estimate error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({ error: "estimate_generation_failed" }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       }
     );
   }

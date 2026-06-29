@@ -135,18 +135,45 @@ export function JobPhotosSection({ jobId }: Props) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        webp: "image/webp",
+        heic: "image/heic",
+        heif: "image/heif",
+      };
+      // On web, Expo returns blob URIs with no extension — map back from MIME type.
+      const MIME_TO_EXT: Record<string, string> = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "image/heic": "heic",
+        "image/heif": "heif",
+      };
+
       for (const asset of result.assets) {
-        const ext = asset.uri.split(".").pop() ?? "jpg";
+        let contentType: string | undefined;
+        let rawExt: string;
+        if (asset.mimeType && MIME_TO_EXT[asset.mimeType]) {
+          contentType = asset.mimeType;
+          rawExt = MIME_TO_EXT[asset.mimeType];
+        } else {
+          rawExt = (asset.uri.split(".").pop() ?? "").toLowerCase().replace(/[^a-z]/g, "");
+          contentType = ALLOWED_IMAGE_TYPES[rawExt];
+        }
+        if (!contentType) continue;
+
         const filename = `${user.id}/${Date.now()}-${Math.random()
           .toString(36)
-          .slice(2)}.${ext}`;
+          .slice(2)}.${rawExt}`;
 
         const response = await fetch(asset.uri);
         const blob = await response.blob();
 
         const { data: uploadData } = await supabase.storage
           .from("job-photos")
-          .upload(filename, blob, { contentType: `image/${ext}` });
+          .upload(filename, blob, { contentType });
 
         if (!uploadData) continue;
 

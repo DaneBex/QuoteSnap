@@ -16,7 +16,7 @@ export default function AuthCallback() {
       const errorCode = searchParams.get("error_code") ?? hashParams.get("error");
       if (errorCode) {
         const errorDescription = searchParams.get("error_description") ?? hashParams.get("error_description") ?? "";
-        console.error("[auth/callback] OAuth error:", { errorCode, errorDescription, fullUrl: window.location.href });
+        console.error("[auth/callback] OAuth error:", { errorCode, errorDescription });
         setError(`Auth error: ${errorCode}${errorDescription ? ` — ${errorDescription}` : ""}`);
         setTimeout(() => router.replace("/(auth)/login"), 5000);
         return;
