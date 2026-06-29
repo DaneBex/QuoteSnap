@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { ScrollView, View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { DemoVideo } from "./DemoVideo";
+import { trackPageView, trackCtaClick } from "@/lib/analytics";
 
 const HOW_IT_WORKS = [
   {
@@ -42,13 +44,15 @@ const CONTROL_POINTS = [
 export function LandingPage() {
   const router = useRouter();
 
+  useEffect(() => { trackPageView(); }, []);
+
   return (
     <ScrollView className="flex-1 bg-app-background" contentContainerStyle={{ paddingBottom: 64 }}>
       {/* Header */}
       <View className="px-5 pt-6 pb-3 flex-row items-center justify-between">
         <Text className="text-app-text-primary font-bold text-xl tracking-tight">QuoteSnap</Text>
         <Pressable
-          onPress={() => router.push("/(auth)/login")}
+          onPress={async () => { await trackCtaClick("Sign in - Header"); router.push("/(auth)/login"); }}
           className="px-4 py-2 rounded-lg bg-app-surface border border-app-border"
         >
           <Text className="text-app-text-primary text-sm font-medium">Sign in</Text>
@@ -74,7 +78,7 @@ export function LandingPage() {
 
         <View className="flex-row gap-3 mt-6">
           <Pressable
-            onPress={() => router.push("/(auth)/login")}
+            onPress={async () => { await trackCtaClick("Try the Beta - Hero"); router.push("/(auth)/login"); }}
             className="flex-1 bg-app-accent rounded-xl py-4 items-center"
           >
             <Text className="text-white font-bold text-base">Try the Beta</Text>
@@ -144,7 +148,7 @@ export function LandingPage() {
           First few estimates are free while I'm collecting contractor feedback.
         </Text>
         <Pressable
-          onPress={() => router.push("/(auth)/login")}
+          onPress={async () => { await trackCtaClick("Try the Beta - Footer"); router.push("/(auth)/login"); }}
           className="w-full bg-app-accent rounded-xl py-4 items-center"
         >
           <Text className="text-white font-bold text-base">Try the Beta</Text>

@@ -221,3 +221,24 @@ create policy "own record update" on public.users
 -- Run in Supabase dashboard Storage tab or via CLI:
 -- Create bucket: job-photos (private)
 -- Add policy: authenticated users can upload to their own folder (user_id/*)
+
+-- ─────────────────────────────────────────────────────────
+-- ANALYTICS: LANDING PAGE VIEWS
+-- ─────────────────────────────────────────────────────────
+create table if not exists public.page_views (
+  id          uuid primary key default gen_random_uuid(),
+  created_at  timestamptz not null default now(),
+  session_id  text not null,
+  event_type  text not null check (event_type in ('view', 'cta_click')),
+  cta_label   text,
+  referrer    text,
+  user_agent  text
+);
+
+alter table public.page_views enable row level security;
+
+-- Anonymous visitors can insert but never read
+create policy "anon insert only" on public.page_views
+  for insert
+  to anon
+  with check (true);
