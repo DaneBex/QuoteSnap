@@ -139,7 +139,12 @@ Deno.serve(async (req) => {
     }
 
     // Beta limit check — uses cumulative counter so deletions don't free up slots
-    const { data: userRow } = await supabase
+    // Service role bypasses RLS so is_paid is always readable server-side.
+    const adminSupabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: userRow } = await adminSupabase
       .from("users")
       .select("is_paid, beta_estimate_limit, total_estimates_created")
       .eq("id", user.id)
