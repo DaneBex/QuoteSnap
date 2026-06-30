@@ -72,7 +72,7 @@ export function LandingPage() {
             QuoteSnap helps small contractors organize customer info, job notes, photos, scope of work, line items, and a printable estimate preview — without starting from scratch.
           </Text>
           <Text className="text-app-text-tertiary text-sm leading-relaxed">
-            Built locally in Eau Claire, WI for small contractors, handymen, painters, remodelers, and repair pros.
+            Built for small contractors, handymen, painters, remodelers, and repair pros.
           </Text>
         </View>
 
